@@ -1,0 +1,55 @@
+{
+  "name": "typescript-userscript-template",
+  "version": "1.0.0",
+  "description": "A template for building userscripts with TypeScript",
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c",
+    "watch": "rollup -c -w",
+    "dev": "rollup -c -w",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "check-grants": "node scripts/check-grants.js",
+    "type-check": "tsc --noEmit",
+    "validate": "npm run lint && npm run format:check && npm run type-check && npm run check-grants && npm run build"
+  },
+  "keywords": [
+    "userscript",
+    "typescript",
+    "template",
+    "tampermonkey",
+    "greasemonkey",
+    "rollup",
+    "userscript-template",
+    "gm-api"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/typescript-userscript-template.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/typescript-userscript-template/issues"
+  },
+  "homepage": "https://github.com/yourusername/typescript-userscript-template#readme",
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@types/tampermonkey": "^5.0.5",
+    "@typescript-eslint/eslint-plugin": "^8.50.1",
+    "@typescript-eslint/parser": "^8.50.1",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "prettier": "^3.7.4",
+    "rollup": "^4.9.1",
+    "rollup-plugin-userscript-metablock": "^0.3.3",
+    "tslib": "^2.6.2",
+    "typescript": "^5.3.3",
+    "typescript-eslint": "^8.50.1"
+  }
+}
