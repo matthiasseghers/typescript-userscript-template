@@ -1,6 +1,6 @@
 # TypeScript Userscript Template
 
-[![CI](https://github.com/yourusername/typescript-userscript-template/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/typescript-userscript-template/actions/workflows/ci.yml)
+[![CI](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/ci.yml/badge.svg)](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A template for building userscripts with TypeScript, allowing you to write modular, type-safe code that compiles into a single userscript file.
