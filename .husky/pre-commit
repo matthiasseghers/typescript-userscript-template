@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Check version sync
+npm run check-version-sync
+
+# Run validation
+npm run validate

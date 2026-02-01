@@ -8,8 +8,5 @@
     "https://example.com/*"
   ],
   "grant": ["GM_addStyle"],
-  "run-at": "document-end",
-  "connect": [
-    "*"
-  ]
+  "run-at": "document-end"
 }

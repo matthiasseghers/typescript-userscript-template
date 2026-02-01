@@ -1,9 +1,28 @@
 # TypeScript Userscript Template
 
 [![CI](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/ci.yml/badge.svg)](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/ci.yml)
+[![Deploy](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/deploy.yml/badge.svg)](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/deploy.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A template for building userscripts with TypeScript, allowing you to write modular, type-safe code that compiles into a single userscript file.
+
+## Installation
+
+Install your userscript with one click using one of these URLs:
+
+### Option 1: jsDelivr CDN (Recommended - Fast & Cached)
+```
+https://cdn.jsdelivr.net/gh/<yourusername>/typescript-userscript-template@main/dist/userscript.user.js
+```
+
+### Option 2: Raw GitHub (Simple)
+```
+https://raw.githubusercontent.com/<yourusername>/typescript-userscript-template/main/dist/userscript.user.js
+```
+
+**[Install Userscript](https://cdn.jsdelivr.net/gh/matthiasseghers/typescript-userscript-template@main/dist/userscript.user.js)**
+
+*(Replace `yourusername` and `typescript-userscript-template` with your actual GitHub username and repository name)*
 
 ## Using This Template
 
@@ -31,8 +50,10 @@ npm install
 - ✅ **Tree-Shaking** - Unused code is automatically removed from the final bundle
 - ✅ **GM API Support** - Full TypeScript support for Tampermonkey/Greasemonkey APIs
 - ✅ **Userscript Metadata** - Automatically inject userscript headers from `meta.json`
-- ✅ **Development Mode** - Watch mode for automatic rebuilding during development
+- ✅ **Development Mode** - Watch mode with inline sourcemaps for debugging
 - ✅ **Code Quality** - ESLint + Prettier for consistent code style
+- ✅ **Pre-commit Hooks** - Automatic validation before commits with Husky
+- ✅ **Version Sync** - Ensures package.json and meta.json versions stay in sync
 - ✅ **CI/CD** - GitHub Actions for automated testing and deployment
 
 ## Project Structure
@@ -64,6 +85,8 @@ npm install
 npm install
 ```
 
+This will also automatically set up git hooks using Husky for pre-commit validation.
+
 ### 2. Configure Your Userscript
 
 Edit `meta.json` to customize your userscript metadata:
@@ -81,31 +104,25 @@ Edit `meta.json` to customize your userscript metadata:
   "grant": [
     "GM_addStyle",
     "GM_getValue",
-    "GM_setValue",
-    "GM_xmlhttpRequest",
-    "GM_notification"
+    "GM_setValue"
   ],
-  "run-at": "document-end",
-  "connect": [
-    "*"
-  ]
+  "run-at": "document-end"
 }
 ```
 
 **Key fields:**
 - `match`: URLs where your userscript runs
-- `grant`: GM API permissions your script needs
-- `connect`: Domains allowed for cross-origin requests
+- `grant`: GM API permissions your script needs (see [Available GM APIs](#available-gm-apis))
+- `run-at`: When to run the script (`document-start`, `document-end`, or `document-idle`)
+- `connect`: (Optional) Domains allowed for `GM_xmlhttpRequest` cross-origin requests. Only add if you use `GM_xmlhttpRequest`. Example: `["api.example.com", "cdn.example.org"]`
 
 ### 3. Build Your Userscript
 
 ```bash
-# One-time build
+# Production build (optimized, no sourcemaps)
 npm run build
 
-# Watch mode (auto-rebuild on changes)
-npm run watch
-# or
+# Development mode (watch mode with inline sourcemaps for debugging)
 npm run dev
 ```
 
@@ -138,7 +155,7 @@ The built userscript will be in `dist/userscript.user.js`.
 
 3. **Run in watch mode** during development:
    ```bash
-   npm run dev
+   npm run dev  # Includes inline sourcemaps for debugging
    ```
 
 4. **Test in browser**:
@@ -151,31 +168,22 @@ The built userscript will be in `dist/userscript.user.js`.
 
 ```typescript
 // src/index.ts
-import { log, waitForElement, store, retrieve, notify } from './utils';
+import { log, waitForElement } from './utils';
 
 async function main(): Promise<void> {
   log('Userscript started!');
   
   try {
-    // Get stored data
-    const count = await retrieve<number>('count', 0);
-    await store('count', count + 1);
-    
     const element = await waitForElement('#my-element');
-    element.textContent = `Modified! (Visit #${count + 1})`;
-    
-    // Show notification
-    notify('Userscript is running!', 'Success');
+    element.textContent = 'Modified by userscript!';
   } catch (error) {
     console.error('Error:', error);
   }
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', main);
-} else {
-  main();
-}
+// Start the userscript
+// Note: With @run-at document-end, the DOM is already loaded
+main();
 ```
 
 ### Example: Creating Utilities
@@ -244,11 +252,11 @@ All functions have full TypeScript autocomplete and type checking!
 
 - **Grant permissions**: Always add the GM functions you use to the `grant` array in [meta.json](meta.json), otherwise they won't work
 
-- **Cross-origin requests**: Add domains to the `connect` array to allow `GM_xmlhttpRequest` to those domains
+- **Cross-origin requests**: If you use `GM_xmlhttpRequest` to make requests to external domains, add those specific domains to the `connect` array. Example: `"connect": ["api.github.com", "cdn.example.com"]`. Avoid using `"*"` wildcard for security reasons.
 
 - **Multiple userscripts**: Duplicate this template folder for each userscript project
 
-- **Source maps**: Source maps are disabled by default for cleaner output. Enable them in `rollup.config.js` by setting `sourcemap: true` if you need to debug TypeScript code in browser DevTools
+- **Source maps**: Use `npm run dev` for development builds with inline source maps to debug TypeScript in browser DevTools. Production builds (`npm run build`) exclude source maps for smaller file size.
 
 - **Tree-shaking**: Unused exports are automatically removed from the bundle. Only code you actually import and use will be included
 
@@ -298,19 +306,60 @@ The template includes ESLint and Prettier:
 - Update `.prettierrc` for different formatting preferences
 - Add GM globals to ESLint if you use additional GM functions
 
-### CI/CD with GitHub Actions
+## Deployment
+
+This template automatically commits the built userscript to your repository, making it instantly available via CDN.
+
+### How It Works
+
+1. Push changes to `main` or `master` branch
+2. The Deploy workflow automatically:
+   - Builds your userscript
+   - Commits `dist/userscript.user.js` to the repo
+3. The file is immediately available via:
+   - **jsDelivr CDN**: `https://cdn.jsdelivr.net/gh/user/repo@main/dist/userscript.user.js`
+   - **Raw GitHub**: `https://raw.githubusercontent.com/user/repo/main/dist/userscript.user.js`
+
+### Update Installation Link
+
+Replace the placeholders in your README installation section:
+- `yourusername` → Your GitHub username
+- `typescript-userscript-template` → Your repository name
+
+### Manual Build & Commit
+
+You can also build and commit manually:
+
+```bash
+npm run build
+git add dist/userscript.user.js
+git commit -m "chore: update built userscript"
+git push
+```
+
+### Alternative: GitHub Releases
+
+For versioned releases, attach the userscript to GitHub releases:
+```
+https://github.com/user/repo/releases/latest/download/userscript.user.js
+```
+
+## CI/CD with GitHub Actions
 
 Two workflows are included:
 
 **`.github/workflows/ci.yml`** - Continuous Integration:
 - Runs on every push and pull request
-- Linting, formatting, type checking, grant validation
+- Linting, formatting, type checking
+- Grant validation, version sync, and markdown link checks
 - Builds the project to ensure everything works
 - Ensures code quality and catches issues early
 
-**`.github/workflows/deploy.yml`** - Deployment (optional):
-- Deploys to GitHub Pages for easy installation
-- Enable GitHub Pages in repo settings to use
+**`.github/workflows/deploy.yml`** - Deployment:
+- Builds and commits userscript on push to main/master
+- Makes it available via jsDelivr CDN and raw GitHub URLs
+- Automatically updates when you push changes
+- Uses `[skip ci]` to avoid infinite loops
 
 **To remove CI/CD:** Simply delete the `.github/workflows/` folder if you don't need it.
 
@@ -341,14 +390,16 @@ Two workflows are included:
 
 ## Scripts Reference
 
-- `npm run build` - Build the userscript once
-- `npm run dev` - Watch mode for development
+- `npm run build` - Build the userscript for production (no sourcemaps)
+- `npm run dev` - Watch mode for development (with inline sourcemaps)
 - `npm run lint` - Check for linting errors
 - `npm run lint:fix` - Auto-fix linting errors
 - `npm run format` - Format code with Prettier
 - `npm run format:check` - Check if code is formatted
 - `npm run type-check` - Run TypeScript type checking
 - `npm run check-grants` - Validate GM API grants
+- `npm run check-version-sync` - Ensure package.json and meta.json versions match
+- `npm run check-links` - Check for broken links in markdown files
 - `npm run validate` - Run all checks (recommended before committing)
 
 ## License
