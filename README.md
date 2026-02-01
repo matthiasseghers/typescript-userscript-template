@@ -185,7 +185,6 @@ async function main(): Promise<void> {
 // Note: With @run-at document-end, the DOM is already loaded
 main();
 ```
-```
 
 ### Example: Creating Utilities
 
