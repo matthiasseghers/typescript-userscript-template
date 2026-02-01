@@ -2,9 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
   pull_request:
-    branches: [main, master]
 
 jobs:
   build:
@@ -34,6 +32,15 @@ jobs:
 
       - name: Check GM API grants
         run: npm run check-grants
+
+      - name: Check version sync
+        run: npm run check-version-sync
+
+      - name: Check markdown links
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: 'yes'
+          config-file: '.markdown-link-check.json'
 
       - name: Build userscript
         run: npm run build

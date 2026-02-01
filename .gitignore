@@ -1,5 +1,7 @@
 node_modules/
-dist/
+dist/*
+!dist/.gitkeep
+!dist/userscript.user.js
 *.log
 .DS_Store
 .vscode/

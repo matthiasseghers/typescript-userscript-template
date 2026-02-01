@@ -7,9 +7,6 @@ function main(): void {
   log('Hello from TypeScript Userscript!');
 }
 
-// Start the userscript when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', main);
-} else {
-  main();
-}
+// Start the userscript
+// Note: With @run-at document-end, the DOM is already loaded
+main();
