@@ -7,6 +7,10 @@
     "build": "rollup -c --environment BUILD:production",
     "watch": "rollup -c -w",
     "dev": "rollup -c -w --environment BUILD:development",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
@@ -15,7 +19,7 @@
     "check-version-sync": "node scripts/check-version-sync.js",
     "check-links": "markdown-link-check README.md",
     "type-check": "tsc --noEmit",
-    "validate": "npm run lint && npm run format:check && npm run type-check && npm run check-grants && npm run check-version-sync && npm run build",
+    "validate": "npm run lint && npm run format:check && npm run type-check && npm run test && npm run check-grants && npm run check-version-sync && npm run build",
     "prepare": "husky || true"
   },
   "keywords": [
@@ -45,9 +49,11 @@
     "@types/tampermonkey": "^5.0.5",
     "@typescript-eslint/eslint-plugin": "^8.50.1",
     "@typescript-eslint/parser": "^8.50.1",
+    "@vitest/ui": "^4.0.18",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
+    "happy-dom": "^20.6.1",
     "husky": "^9.0.11",
     "markdown-link-check": "^3.12.2",
     "prettier": "^3.7.4",
@@ -55,6 +61,7 @@
     "rollup-plugin-userscript-metablock": "^0.3.3",
     "tslib": "^2.6.2",
     "typescript": "^5.3.3",
-    "typescript-eslint": "^8.50.1"
+    "typescript-eslint": "^8.50.1",
+    "vitest": "^4.0.18"
   }
 }

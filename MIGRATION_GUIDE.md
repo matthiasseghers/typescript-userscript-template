@@ -1,6 +1,6 @@
-# Migration Guide: Legacy Userscript to TypeScript Template
+# Migration Guide: Userscript to TypeScript Template
 
-This guide walks you through migrating an existing userscript to the TypeScript template, transforming monolithic JavaScript into modular, typed, testable code.
+This guide walks you through migrating an existing userscript to the TypeScript template, transforming monolithic JavaScript into modular, typed, testable code. **The examples are generic and intentionally framework-agnostic—adapt them to your specific userscript.**
 
 ## Why Migrate?
 
@@ -76,124 +76,127 @@ Before writing code, analyze your legacy script:
    - Identify utility functions vs. core logic
    - Note dependencies between functions
 
-**Example Analysis:**
+**Example Analysis Template (fill this in for your project):**
 ```
 Features:
-- Parses training table from page
-- Calculates optimal training sessions
-- Displays results in custom UI
-- Responds to user input
+- [Feature 1]
+- [Feature 2]
+- [Feature 3]
 
-Data Types:
-- Stats: { HP, MP, OFF, DEF, SPD, BRN }
-- Training effects: { trainingName → stat gains }
-- Results: { trainingName → session count }
+Data Types/Entities:
+- [Entity name]: { property1, property2, ... }
+- [Entity name]: { property1, property2, ... }
 
 External Dependencies:
-- javascript-lp-solver (@require)
+- [Library name if any]
 
 GM APIs Used:
-- None (add any you use to grant array)
+- [List any GM_getValue, GM_setValue, etc.]
 ```
+
+**Real-world example:**
+For a shopping site helper: Features: Extract prices, Compare across stores, Save favorites. Data: Product { id, name, price }, Cart { items }. APIs: GM_setValue, GM_getValue
+
 
 ### Phase 3: Type Definitions (1-2 hours)
 
-Start with TypeScript types - they guide the rest of the migration.
+Start with TypeScript types—they guide the rest of the migration. **TODO items show where to add your specific types.**
 
-1. **Create domain types** (`src/types/training.ts`)
+1. **Create domain types** (`src/types/domain.ts`)
    ```typescript
    /**
-    * Valid stat names in the game
+    * TODO: Replace DataEntity with your actual entity name
+    * Examples: Product, Task, Comment, Post, User, etc.
     */
-   export type StatName = 'HP' | 'MP' | 'OFF' | 'DEF' | 'SPD' | 'BRN';
-
-   /**
-    * Stats object containing all six stat values
-    */
-   export interface Stats {
-     HP: number;
-     MP: number;
-     OFF: number;
-     DEF: number;
-     SPD: number;
-     BRN: number;
+   export interface DataEntity {
+     id: string | number;
+     // Add your properties here
    }
 
    /**
-    * Result from optimization - either success or error
+    * TODO: Define your app's state shape
     */
-   export type OptimizationResult = 
-     | { [trainingName: string]: number }
-     | { error: string };
+   export interface AppState {
+     // items: DataEntity[]
+     // isLoading?: boolean
+     // error?: string | null
+   }
+
+   /**
+    * Generic result type for operations that might fail
+    */
+   export type Result<T> = 
+     | { success: true; data: T }
+     | { success: false; error: string };
    ```
 
-2. **Add external library types** (`src/types/solver.d.ts`)
+2. **Add external library types** (`src/types/external.d.ts`)
    ```typescript
    /**
-    * Type definitions for external javascript-lp-solver library
-    * loaded via @require
+    * TODO: Add type definitions if you use @require
+    * Replace 'externalLib' with the actual global name
     */
    declare global {
      interface Window {
-       solver: {
-         Solve: (model: LPModel) => LPResult;
+       externalLib?: {
+         method(arg: unknown): unknown;
+         // Add other methods your library exposes
        };
      }
    }
-   
-   export interface LPModel {
-     optimize: string;
-     opType: 'min' | 'max';
-     constraints: Record<string, { min?: number; max?: number }>;
-     variables: Record<string, Record<string, number>>;
-   }
-   
-   // ... etc
    ```
 
-3. **Add asset types if needed** (`src/types/assets.d.ts`)
+3. **GM API types** (automatically available)
    ```typescript
-   /**
-    * Allow importing images as data URIs
-    */
-   declare module '*.gif' {
-     const content: string;
-     export default content;
+   // @types/tampermonkey provides GM_* functions
+   // If you need custom definitions, add them here:
+   declare global {
+     function GM_setValue(name: string, value: any): void;
+     function GM_getValue(name: string, defaultValue?: any): any;
    }
    ```
+
 
 ### Phase 4: Module Structure (2-4 hours)
 
-Break your code into focused modules. Recommended order:
+Break your code into focused modules. This recommended order keeps dependencies clear:
 
 #### 1. Constants (`src/constants.ts`)
-Extract magic strings and values:
+Extract magic strings and values. **TODO: Add your actual selectors and config:**
 ```typescript
-export const STAT_NAMES = ['HP', 'MP', 'OFF', 'DEF', 'SPD', 'BRN'] as const;
-
-export const ELEMENT_IDS = {
-  CALCULATE_BUTTON: 'calculateButton',
-  MESSAGE_ROW: 'messageRow',
+export const SELECTORS = {
+  MAIN_CONTAINER: '#main',
+  BUTTON_ACTION: '.action-btn',
+  INPUT_FIELD: 'input[type="text"]',
+  // Add more as needed
 } as const;
 
-export const MAX_VALUES = {
-  HP: 9999,
-  MP: 9999,
-  OFF: 999,
-  DEF: 999,
-  SPD: 999,
-  BRN: 999,
+export const CONFIG = {
+  DEBOUNCE_DELAY: 300,
+  TIMEOUT_MS: 5000,
+  RETRY_COUNT: 3,
+} as const;
+
+export const STORAGE_KEYS = {
+  PREFERENCES: 'userscript_prefs',
+  CACHE: 'userscript_cache',
 } as const;
 ```
 
 #### 2. Utilities (`src/utils.ts`)
-General-purpose helper functions:
+General-purpose helpers:
 ```typescript
-export function parseNumber(value: string): number {
-  const num = parseInt(value, 10);
-  return isNaN(num) ? 0 : num;
+// TODO: Add your utility functions
+export function formatData(value: unknown): string {
+  return String(value);
 }
 
+export function parseInput(value: string): number | null {
+  const num = parseInt(value, 10);
+  return isNaN(num) ? null : num;
+}
+
+// Rate limiting
 export function debounce<T extends (...args: any[]) => any>(
   fn: T,
   delay: number
@@ -206,13 +209,15 @@ export function debounce<T extends (...args: any[]) => any>(
 }
 
 export function log(message: string): void {
-  console.log(`[Your Script] ${message}`);
+  console.log(`[MyScript] ${message}`);
 }
 ```
 
 #### 3. DOM Utilities (`src/dom-utils.ts`)
 Type-safe DOM helpers:
 ```typescript
+import { SELECTORS } from './constants';
+
 export function getElement<T extends HTMLElement>(selector: string): T | null {
   return document.querySelector<T>(selector);
 }
@@ -220,91 +225,144 @@ export function getElement<T extends HTMLElement>(selector: string): T | null {
 export function getAllElements<T extends HTMLElement>(selector: string): T[] {
   return Array.from(document.querySelectorAll<T>(selector));
 }
+
+export function createElement(tag: string, className?: string): HTMLElement {
+  const element = document.createElement(tag);
+  if (className) element.className = className;
+  return element;
+}
+
+// TODO: Add domain-specific DOM helpers
+export function getMainContainer(): HTMLElement | null {
+  return getElement(SELECTORS.MAIN_CONTAINER);
+}
 ```
 
 #### 4. State Management (`src/state.ts`)
-Centralize application state:
+Centralize your app's data. **TODO: Adapt to your data structure:**
 ```typescript
-let currentStats: Stats = { HP: 0, MP: 0, OFF: 0, DEF: 0, SPD: 0, BRN: 0 };
-let goalStats: Stats = { HP: 0, MP: 0, OFF: 0, DEF: 0, SPD: 0, BRN: 0 };
-let results: OptimizationResult | null = null;
+import type { AppState } from './types/domain';
 
-export function getCurrentStats(): Stats {
-  return { ...currentStats };
+let state: AppState = {
+  // TODO: Initialize with your actual state shape
+  // items: [],
+  // isInitialized: false,
+};
+
+export function getState(): Readonly<AppState> {
+  return { ...state };
 }
 
-export function setCurrentStats(stats: Partial<Stats>): void {
-  currentStats = { ...currentStats, ...stats };
+export function updateState(updates: Partial<AppState>): void {
+  state = { ...state, ...updates };
 }
 
-// ... similar for goalStats and results
-```
-
-#### 5. Core Logic (`src/optimizer.ts`, `src/parser.ts`, etc.)
-Your main business logic, split by responsibility:
-```typescript
-// src/training-parser.ts
-export function parseTrainingTable(): TrainingEffects | null {
-  const table = findTrainingTable();
-  if (!table) return null;
-  
-  // Parsing logic...
-  return effects;
-}
-
-// src/optimizer.ts
-export function calculateOptimalTraining(
-  statDifference: Stats
-): OptimizationResult {
-  const trainingEffects = parseTrainingTable();
-  if (!trainingEffects) return { error: 'Cannot parse training table' };
-  
-  // Optimization logic...
-  return results;
+export function clear(): void {
+  // TODO: Reset state if needed
 }
 ```
 
-#### 6. UI Components (`src/ui-renderer.ts`)
-Create and update UI elements:
+#### 5. Core Logic (One or more files)
+Split business logic by responsibility. **TODO: Adapt to your features:**
+
 ```typescript
-export function createCustomTable(): HTMLDivElement {
-  const container = document.createElement('div');
-  // Build your UI...
+// src/parser.ts - Extract data from the page
+import type { DataEntity } from './types/domain';
+
+export function parsePageData(): DataEntity[] {
+  // TODO: Extract and return your data
+  const elements = document.querySelectorAll('[data-item]');
+  return Array.from(elements).map(el => ({
+    id: el.getAttribute('data-id') || '',
+    // Map other properties
+  }));
+}
+
+// src/processor.ts - Process/transform data
+import type { DataEntity, Result } from './types/domain';
+
+export function processData(data: DataEntity[]): Result<DataEntity[]> {
+  try {
+    const processed = data.filter(item => !!item.id);
+    return { success: true, data: processed };
+  } catch (error) {
+    return { success: false, error: String(error) };
+  }
+}
+
+// src/storage.ts - Handle persistent storage
+import { STORAGE_KEYS } from './constants';
+
+export function loadPreferences(): Record<string, any> {
+  const stored = GM_getValue(STORAGE_KEYS.PREFERENCES, '{}');
+  return typeof stored === 'string' ? JSON.parse(stored) : stored;
+}
+
+export function savePreferences(prefs: Record<string, any>): void {
+  GM_setValue(STORAGE_KEYS.PREFERENCES, JSON.stringify(prefs));
+}
+```
+
+#### 6. UI Components (`src/ui.ts`)
+Create and update the UI. **TODO: Build your UI:**
+```typescript
+import type { DataEntity } from './types/domain';
+import { createElement } from './dom-utils';
+
+export function createResultsContainer(): HTMLElement {
+  const container = createElement('div', 'results-container');
+  // TODO: Build your UI structure
   return container;
 }
 
-export function updateResults(results: OptimizationResult): void {
-  // Update UI with results...
+export function updateResultsDisplay(items: DataEntity[]): void {
+  const container = document.querySelector('.results-container');
+  if (!container) return;
+  container.innerHTML = items.map(item => `<div>${item.id}</div>`).join('');
+}
+
+export function showLoadingState(loading: boolean): void {
+  const indicator = document.querySelector('.loading');
+  if (indicator) indicator.style.display = loading ? 'block' : 'none';
 }
 ```
 
-#### 7. Event Handlers (`src/event-handlers.ts`)
-User interaction logic:
+#### 7. Event Handlers (`src/events.ts`)
+Handle user interactions. **TODO: Add your event listeners:**
 ```typescript
+import { updateState } from './state';
+
 export function attachEventListeners(): void {
-  const button = document.querySelector('#calculateButton');
-  button?.addEventListener('click', handleCalculate);
-  
-  const inputs = document.querySelectorAll('input');
-  inputs.forEach(input => {
-    input.addEventListener('input', handleInputChange);
-  });
+  document.addEventListener('click', handleClick);
+  document.addEventListener('change', handleChange);
 }
 
-function handleCalculate(): void {
-  // Handle button click...
+function handleClick(event: Event): void {
+  const target = event.target as HTMLElement;
+  
+  if (target.matches('.action-btn')) {
+    // TODO: Handle your button clicks
+  }
+}
+
+function handleChange(event: Event): void {
+  const target = event.target as HTMLInputElement;
+  
+  if (target.matches('input[type="text"]')) {
+    // TODO: Handle input changes
+  }
 }
 ```
 
 #### 8. Observers (`src/observers.ts`)
-Monitor page changes:
+Monitor for DOM/page changes. **TODO: Define what to watch:**
 ```typescript
-export function monitorTable(): void {
+export function monitorPageChanges(): void {
   const observer = new MutationObserver(() => {
-    // React to changes...
+    // TODO: What should happen when the page changes?
   });
   
-  observer.observe(targetElement, {
+  observer.observe(document.body, {
     childList: true,
     subtree: true,
   });
@@ -312,24 +370,33 @@ export function monitorTable(): void {
 ```
 
 #### 9. Main Entry Point (`src/index.ts`)
-Orchestrate everything:
+Tie everything together:
 ```typescript
-import { createCustomTable } from './ui-renderer';
-import { attachEventListeners } from './event-handlers';
-import { monitorTable } from './observers';
+import { log } from './utils';
+import { parsePageData } from './parser';
+import { processData } from './processor';
+import { updateResultsDisplay } from './ui';
+import { attachEventListeners } from './events';
+import { monitorPageChanges } from './observers';
+import { updateState } from './state';
 
 async function main(): Promise<void> {
   try {
-    // Initialize UI
-    createCustomTable();
+    log('Initializing userscript...');
     
-    // Set up event handlers
+    const data = parsePageData();
+    const result = processData(data);
+    
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+    
+    updateState({ items: result.data });
+    updateResultsDisplay(result.data);
     attachEventListeners();
+    monitorPageChanges();
     
-    // Start monitoring
-    monitorTable();
-    
-    log('Userscript initialized successfully');
+    log('Userscript initialized');
   } catch (error) {
     console.error('Initialization failed:', error);
   }
@@ -338,57 +405,56 @@ async function main(): Promise<void> {
 main();
 ```
 
-### Phase 5: Testing (2-4 hours)
 
-Write tests as you build modules to ensure correctness.
+### Phase 5: Testing (1-2 hours)
 
-1. **Install test dependencies** (already in template)
-   ```bash
-   npm install --save-dev jest @types/jest ts-jest @testing-library/dom jest-environment-jsdom
-   ```
+Write tests to verify your modules work correctly. The template includes Vitest.
 
-2. **Create test files** (`tests/*.test.ts`)
+1. **Test utilities** (`tests/utils.test.ts`)
    ```typescript
-   // tests/utils.test.ts
-   import { parseNumber, debounce } from '../src/utils';
+   import { describe, it, expect } from 'vitest';
+   import { parseInput, debounce } from '../src/utils';
 
-   describe('parseNumber', () => {
-     test('should parse valid integers', () => {
-       expect(parseNumber('123')).toBe(123);
-       expect(parseNumber('0')).toBe(0);
+   describe('utils', () => {
+     it('should parse valid numbers', () => {
+       expect(parseInput('123')).toBe(123);
+       expect(parseInput('0')).toBe(0);
      });
 
-     test('should return 0 for invalid input', () => {
-       expect(parseNumber('abc')).toBe(0);
-       expect(parseNumber('')).toBe(0);
+     it('should return null for invalid input', () => {
+       expect(parseInput('abc')).toBe(null);
      });
    });
    ```
 
-3. **Mock external dependencies**
+2. **Test parsing logic** (`tests/parser.test.ts`)
    ```typescript
-   // tests/setup.ts
-   (global as any).window = global;
-   if (typeof window !== 'undefined') {
-     (window as any).solver = {
-       Solve: jest.fn(),
-     };
-   }
-   ```
+   import { describe, it, expect, beforeEach } from 'vitest';
+   import { parsePageData } from '../src/parser';
 
-4. **Test with realistic data**
-   ```typescript
-   // tests/integration.test.ts
-   test('HP 1000 should require 13 training sessions', () => {
-     const result = calculateOptimalTraining({ HP: 1000, ... });
-     expect(result).toEqual({ HP: 13 });
+   describe('parsePageData', () => {
+     beforeEach(() => {
+       // Set up test DOM
+       document.body.innerHTML = `
+         <div data-item data-id="1">Item 1</div>
+         <div data-item data-id="2">Item 2</div>
+       `;
+     });
+
+     it('should extract items from page', () => {
+       const items = parsePageData();
+       expect(items).toHaveLength(2);
+       expect(items[0].id).toBe('1');
+     });
    });
    ```
 
-5. **Run tests**
+3. **Run tests**
    ```bash
-   npm test
-   npm run test:coverage  # Check coverage
+   npm test                 # Run once
+   npm run test:watch      # Watch mode during development
+   npm run test:coverage   # See coverage report
+   npm run test:ui         # Interactive UI dashboard
    ```
 
 ### Phase 6: Validation & Deployment (1 hour)
@@ -427,194 +493,138 @@ Write tests as you build modules to ensure correctness.
 
 **Before:**
 ```javascript
-var currentHP = 0;
-var goalHP = 0;
-var results = null;
+var globalData = null;
+var globalConfig = {};
 ```
 
-**After:**
+**After (TypeScript + Modules):**
 ```typescript
 // src/state.ts
-let currentStats: Stats = { HP: 0, ... };
-let goalStats: Stats = { HP: 0, ... };
-let results: OptimizationResult | null = null;
+let state = { data: null, config: {} };
 
-export function setCurrentStats(stats: Partial<Stats>): void {
-  currentStats = { ...currentStats, ...stats };
+export function getState() {
+  return { ...state };
+}
+
+export function setState(updates) {
+  state = { ...state, ...updates };
 }
 ```
 
 ### Pattern 2: Breaking Down Large Functions
 
-**Before:**
+**Before (monolithic):**
 ```javascript
 function doEverything() {
   // 200 lines of mixed concerns
-  parseTable();
-  calculateResults();
-  updateUI();
+  var data = extractDataFromPage();
+  var results = processTheData(data);
+  updateTheUIWithResults(results);
   handleErrors();
 }
 ```
 
-**After:**
+**After (modular):**
 ```typescript
-// src/training-parser.ts
-export function parseTrainingTable(): TrainingEffects | null { ... }
+// Each function in its own file, single responsibility
+// src/parser.ts
+export function extractDataFromPage() { ... }
 
-// src/optimizer.ts
-export function calculateOptimalTraining(...): OptimizationResult { ... }
+// src/processor.ts
+export function processTheData(data) { ... }
 
-// src/ui-renderer.ts
-export function updateResults(results: OptimizationResult): void { ... }
+// src/ui.ts
+export function updateTheUIWithResults(results) { ... }
 
-// src/index.ts
-function main() {
-  const effects = parseTrainingTable();
-  const results = calculateOptimalTraining(effects);
-  updateResults(results);
+// src/index.ts - Orchestrate it all
+async function main() {
+  const data = extractDataFromPage();
+  const results = processTheData(data);
+  updateTheUIWithResults(results);
 }
 ```
 
 ### Pattern 3: Type-Safe Event Handlers
 
-**Before:**
+**Before (no type safety):**
 ```javascript
 input.addEventListener('input', function(e) {
-  var value = e.target.value;  // Any type
-  // ...
+  var value = e.target.value;  // Any type!
+  doSomething(value);
 });
 ```
 
-**After:**
+**After (typed):**
 ```typescript
 function handleInput(event: Event): void {
   const input = event.target as HTMLInputElement;
-  const value = parseNumber(input.value);  // Type-safe
-  const stat = input.dataset.stat as StatName;
-  // ...
+  const value = input.value;  // Browser knows this is a string
+  doSomething(value);
 }
+
+input.addEventListener('input', handleInput);
 ```
 
 ### Pattern 4: External Library Integration
 
-**Before:**
+**Before (unsafe global):**
 ```javascript
-// @require https://unpkg.com/some-library/dist/library.js
-// Library available as global, no types
-
-var result = LibraryGlobal.method(data);
+// @require https://example.com/library.js
+var result = window.Library.method(data);  // No types!
 ```
 
-**After:**
+**After (typed):**
 ```typescript
-// meta.json: add to "require" array
-// src/types/library.d.ts
+// src/types/external.d.ts
 declare global {
   interface Window {
-    LibraryGlobal: {
-      method(data: SomeType): ResultType;
+    Library: {
+      method(data: InputType): OutputType;
     };
   }
 }
 
-// Now fully typed!
-const result = window.LibraryGlobal.method(data);
+// Now fully typed with autocomplete!
+const result = window.Library?.method(data);
 ```
+
 
 ## Tips & Gotchas
 
 ### Tree-Shaking
-❌ **Won't work** - unused export is removed:
+
+Rollup will remove unused code, so make sure you actually call exported functions:
+
 ```typescript
-// src/ui-renderer.ts
-export function createLoadingOverlay() { ... }
+// ❌ This gets removed if never imported/called
+export function unusedFunction() { ... }
 
-// src/index.ts
-import { createLoadingOverlay } from './ui-renderer';
-// Never call it - gets tree-shaken!
+// ✅ This stays because it's called
+export function usedFunction() { ... }
+usedFunction();  // Called!
 ```
-
-✅ **Will work** - export is used:
-```typescript
-// src/index.ts
-const overlay = createLoadingOverlay();  // Called!
-document.body.appendChild(overlay);
-```
-
-### Asset Handling
-For images, CSS, or other assets:
-
-1. Create type definition:
-   ```typescript
-   // src/types/assets.d.ts
-   declare module '*.gif' {
-     const content: string;
-     export default content;
-   }
-   ```
-
-2. Import in code:
-   ```typescript
-   import loadingGif from './assets/loading.gif';
-   // Rollup converts to base64 data URI
-   ```
-
-3. Configure Rollup:
-   ```javascript
-   // rollup.config.js
-   import image from '@rollup/plugin-image';
-   
-   plugins: [image()]
-   ```
 
 ### Debugging with Sourcemaps
 
-Development builds include inline sourcemaps:
+Development builds include sourcemaps for easier debugging:
+
 ```bash
 npm run dev  # Watch mode with sourcemaps
 ```
 
 In browser DevTools:
-- See original TypeScript file names
-- Set breakpoints in TypeScript code
-- Step through your actual source code
-
-Production builds exclude sourcemaps for smaller size:
-```bash
-npm run build  # No sourcemaps
-```
-
-### Performance Considerations
-
-**Debouncing expensive operations:**
-```typescript
-// Prevent calculation on every keystroke
-const debouncedCalculate = debounce(calculate, 300);
-input.addEventListener('input', debouncedCalculate);
-```
-
-**Loading indicators:**
-```typescript
-function calculate() {
-  showLoading(true);
-  
-  setTimeout(() => {
-    // Do expensive work
-    const result = optimizer.calculate();
-    updateUI(result);
-    showLoading(false);
-  }, 100);  // Give UI time to update
-}
-```
+- You'll see original TypeScript filenames
+- Set breakpoints in your actual source code
+- Step through TypeScript, not compiled output
 
 ### Common Mistakes
 
-1. **Forgetting to call exports** → Tree-shaking removes them
-2. **Not adding GM APIs to grant** → Functions won't work
-3. **Missing external library types** → No autocomplete
-4. **Not testing in browser** → Surprises after migration
-5. **Trying to do everything at once** → Incremental is better
+1. **Not adding GM APIs to `grant` array** → Userscript functions won't work
+2. **Not testing in browser first** → Works locally but fails on live sites
+3. **Missing type definitions for external libraries** → No IDE autocomplete
+4. **Not splitting modules early** → Code becomes hard to maintain
+5. **Assuming tree-shaking won't remove your code** → Always call/import what you need
+
 
 ## Incremental Migration Strategy
 
@@ -637,20 +647,22 @@ Don't feel you need to migrate everything at once. You can:
 
 ## Getting Help
 
-- **TypeScript errors:** Check [TypeScript Handbook](https://www.typescriptlang.org/docs/)
-- **Jest testing:** See [Jest Documentation](https://jestjs.io/docs/getting-started)
-- **Template issues:** Open issue on template repository
-- **Migration questions:** Look at the example project or ask in discussions
+- **TypeScript questions:** [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+- **Testing help:** [Vitest Documentation](https://vitest.dev/)
+- **Userscript APIs:** [Tampermonkey Documentation](https://www.tampermonkey.net/documentation.php)
+- **Template issues:** Open an issue on the template repository
 
 ## Conclusion
 
-Migrating to TypeScript requires upfront effort but pays dividends:
-- Catch bugs before they reach users
-- Easier to maintain and extend
-- Better IDE support and refactoring
-- Comprehensive testing gives confidence
-- Modern development workflow
+Migrating to TypeScript requires upfront effort but provides lasting value:
 
-The key is taking it step-by-step: types → modules → tests → validation.
+- ✅ Catch bugs before they reach users
+- ✅ Easier to maintain and extend in the future
+- ✅ Better IDE support (autocomplete, refactoring)
+- ✅ Tests give confidence when making changes
+- ✅ Professional development workflow
+
+The key is incremental progress: **analyze → define types → build modules → test → validate**.
 
 Good luck with your migration! 🚀
+

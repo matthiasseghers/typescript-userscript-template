@@ -4,7 +4,27 @@
 [![Deploy](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/deploy.yml/badge.svg)](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/deploy.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A template for building userscripts with TypeScript, allowing you to write modular, type-safe code that compiles into a single userscript file.
+A professional template for building userscripts with TypeScript, allowing you to write modular, type-safe, **tested** code that compiles into a single userscript file.
+
+## Why Use This Template?
+
+**Transform your userscript development:**
+
+🎯 **Type Safety** - Catch bugs at compile-time, not in production. TypeScript prevents common errors before they reach users.
+
+📦 **Modularity** - Split monolithic scripts into focused, reusable modules. No more scrolling through 1000+ line files.
+
+🧪 **Built-in Testing** - Write tests with Vitest. Verify your code works before deploying to users.
+
+🔍 **IDE Superpowers** - Full autocomplete for GM APIs, instant refactoring, and go-to-definition across your entire codebase.
+
+🚀 **Modern Tooling** - ESLint, Prettier, Husky, and GitHub Actions already configured. Professional CI/CD out of the box.
+
+⚡ **Tree-Shaking** - Automatically removes unused code. Import large libraries without bloating your userscript.
+
+📚 **Maintainability** - Come back to your project months later and actually understand what you wrote. Clear structure + types = sustainable code.
+
+**Stop fighting with brittle monolithic JavaScript. Start building maintainable, professional userscripts.**
 
 ## Installation
 
@@ -46,6 +66,7 @@ npm install
 
 - ✅ **TypeScript Support** - Write your userscripts with full TypeScript features and type checking
 - ✅ **Modular Code** - Split your code into multiple files and modules
+- ✅ **Testing Framework** - Vitest included for unit and integration tests
 - ✅ **Automatic Bundling** - Rollup bundles everything into a single userscript file
 - ✅ **Tree-Shaking** - Unused code is automatically removed from the final bundle
 - ✅ **GM API Support** - Full TypeScript support for Tampermonkey/Greasemonkey APIs
@@ -66,9 +87,13 @@ npm install
 ├── src/
 │   ├── index.ts       # Main entry point
 │   └── utils.ts       # Utility functions (example)
+├── tests/
+│   ├── utils.test.ts  # Example tests for utilities
+│   └── index.test.ts  # Example tests for main logic
 ├── dist/
 │   └── userscript.user.js  # Built userscript (auto-generated)
 ├── meta.json          # Userscript metadata
+├── vitest.config.ts   # Test configuration
 ├── package.json       # Project dependencies
 ├── tsconfig.json      # TypeScript configuration
 ├── rollup.config.js   # Build configuration
@@ -146,23 +171,49 @@ The built userscript will be in `dist/userscript.user.js`.
    - Create additional `.ts` files as needed
    - Import/export modules as usual
 
-2. **Lint and format your code**:
+2. **Write tests** for your code:
+   ```bash
+   npm test              # Run tests once
+   npm run test:watch    # Watch mode for test-driven development
+   npm run test:ui       # Interactive UI for exploring tests
+   npm run test:coverage # Generate coverage report
+   ```
+
+3. **Lint and format your code**:
    ```bash
    npm run lint        # Check for errors
    npm run lint:fix    # Auto-fix errors
    npm run format      # Format code with Prettier
    ```
 
-3. **Run in watch mode** during development:
+4. **Run in watch mode** during development:
    ```bash
    npm run dev  # Includes inline sourcemaps for debugging
    ```
 
-4. **Test in browser**:
+5. **Test in browser**:
    - After each build, copy the updated `dist/userscript.user.js` to your userscript manager
    - Or set up automatic reloading (see Tips below)
 
 ## Writing Your Userscript
+
+### Example: Testing Your Code
+
+The template includes Vitest for testing. Write tests alongside your code:
+
+```typescript
+// tests/utils.test.ts
+import { describe, it, expect } from 'vitest';
+import { log } from '../src/utils';
+
+describe('utils', () => {
+  it('should log with prefix', () => {
+    // Your test logic here
+  });
+});
+```
+
+See the MIGRATION_GUIDE.md for more testing examples.
 
 ### Example: Basic Structure
 
@@ -351,6 +402,7 @@ Two workflows are included:
 **`.github/workflows/ci.yml`** - Continuous Integration:
 - Runs on every push and pull request
 - Linting, formatting, type checking
+- **Runs test suite to catch bugs**
 - Grant validation, version sync, and markdown link checks
 - Builds the project to ensure everything works
 - Ensures code quality and catches issues early
@@ -390,17 +442,28 @@ Two workflows are included:
 
 ## Scripts Reference
 
+**Build:**
 - `npm run build` - Build the userscript for production (no sourcemaps)
 - `npm run dev` - Watch mode for development (with inline sourcemaps)
+
+**Testing:**
+- `npm test` - Run tests once
+- `npm run test:watch` - Watch mode for tests
+- `npm run test:ui` - Interactive test UI dashboard
+- `npm run test:coverage` - Generate coverage report
+
+**Code Quality:**
 - `npm run lint` - Check for linting errors
 - `npm run lint:fix` - Auto-fix linting errors
 - `npm run format` - Format code with Prettier
 - `npm run format:check` - Check if code is formatted
 - `npm run type-check` - Run TypeScript type checking
+
+**Validation:**
 - `npm run check-grants` - Validate GM API grants
 - `npm run check-version-sync` - Ensure package.json and meta.json versions match
 - `npm run check-links` - Check for broken links in markdown files
-- `npm run validate` - Run all checks (recommended before committing)
+- `npm run validate` - Run all checks including tests (recommended before committing)
 
 ## License
 
