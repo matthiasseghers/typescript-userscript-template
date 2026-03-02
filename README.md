@@ -1,7 +1,7 @@
 # TypeScript Userscript Template
 
 [![CI](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/ci.yml/badge.svg)](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/ci.yml)
-[![Deploy](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/deploy.yml/badge.svg)](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/deploy.yml)
+[![Release](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/release.yml/badge.svg)](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A professional template for building userscripts with TypeScript, allowing you to write modular, type-safe, **tested** code that compiles into a single userscript file.
@@ -14,7 +14,7 @@ A professional template for building userscripts with TypeScript, allowing you t
 
 📦 **Modularity** - Split monolithic scripts into focused, reusable modules. No more scrolling through 1000+ line files.
 
-🧪 **Built-in Testing** - Write tests with Vitest. Verify your code works before deploying to users.
+🧪 **Built-in Testing** - Write tests with Vitest. Verify your code works before releasing to users.
 
 🔍 **IDE Superpowers** - Full autocomplete for GM APIs, instant refactoring, and go-to-definition across your entire codebase.
 
@@ -74,8 +74,7 @@ npm install
 - ✅ **Development Mode** - Watch mode with inline sourcemaps for debugging
 - ✅ **Code Quality** - ESLint + Prettier for consistent code style
 - ✅ **Pre-commit Hooks** - Automatic validation before commits with Husky
-- ✅ **Version Sync** - Ensures package.json and meta.json versions stay in sync
-- ✅ **CI/CD** - GitHub Actions for automated testing and deployment
+- ✅ **CI/CD** - GitHub Actions for automated testing and releases
 
 ## Project Structure
 
@@ -140,6 +139,18 @@ Edit `meta.json` to customize your userscript metadata:
 - `grant`: GM API permissions your script needs (see [Available GM APIs](#available-gm-apis))
 - `run-at`: When to run the script (`document-start`, `document-end`, or `document-idle`)
 - `connect`: (Optional) Domains allowed for `GM_xmlhttpRequest` cross-origin requests. Only add if you use `GM_xmlhttpRequest`. Example: `["api.example.com", "cdn.example.org"]`
+- `version`: **This is your userscript version** - what users see in Tampermonkey. Bump this when releasing updates.
+
+**Versioning strategy:**
+
+This depends on whether you're in **template mode** or **userscript mode** (set via `"templateMode"` in `package.json`):
+
+| | `package.json` | `meta.json` |
+|---|---|---|
+| **Template mode** | Template infrastructure version | Always `1.0.0` - never changed |
+| **Userscript mode** | Kept in sync with `meta.json` | Your userscript version (what Tampermonkey shows users) |
+
+In **userscript mode**, both files are always bumped together so your git tag, `package.json`, and `meta.json` all reflect the same version.
 
 ### 3. Build Your Userscript
 
@@ -357,63 +368,167 @@ The template includes ESLint and Prettier:
 - Update `.prettierrc` for different formatting preferences
 - Add GM globals to ESLint if you use additional GM functions
 
-## Deployment
+## Installation & Distribution
 
-This template automatically commits the built userscript to your repository, making it instantly available via CDN.
+Users can install your userscript in multiple ways:
 
-### How It Works
+### Method 1: From GitHub Releases (Recommended)
 
-1. Push changes to `main` or `master` branch
-2. The Deploy workflow automatically:
-   - Builds your userscript
-   - Commits `dist/userscript.user.js` to the repo
-3. The file is immediately available via:
-   - **jsDelivr CDN**: `https://cdn.jsdelivr.net/gh/user/repo@main/dist/userscript.user.js`
-   - **Raw GitHub**: `https://raw.githubusercontent.com/user/repo/main/dist/userscript.user.js`
+After creating a release (see [Creating a Release](#creating-a-release)), users can install from:
 
-### Update Installation Link
-
-Replace the placeholders in your README installation section:
-- `yourusername` → Your GitHub username
-- `typescript-userscript-template` → Your repository name
-
-### Manual Build & Commit
-
-You can also build and commit manually:
-
-```bash
-npm run build
-git add dist/userscript.user.js
-git commit -m "chore: update built userscript"
-git push
-```
-
-### Alternative: GitHub Releases
-
-For versioned releases, attach the userscript to GitHub releases:
 ```
 https://github.com/user/repo/releases/latest/download/userscript.user.js
 ```
 
+Replace `user/repo` with your GitHub username and repository name.
+
+### Method 2: Build Locally
+
+Users can clone your repo and build manually:
+
+```bash
+git clone https://github.com/user/repo.git
+cd repo
+npm install
+npm run build
+# Install dist/userscript.user.js in Tampermonkey/Greasemonkey
+```
+
+### Method 3: Development Installation
+
+For development, you can use Tampermonkey's built-in editor or a local file:
+
+```bash
+npm run dev  # Watch mode with sourcemaps
+# Point Tampermonkey to file:///path/to/dist/userscript.user.js
+```
+
 ## CI/CD with GitHub Actions
 
-Two workflows are included:
+Three workflows are included:
 
 **`.github/workflows/ci.yml`** - Continuous Integration:
 - Runs on every push and pull request
 - Linting, formatting, type checking
 - **Runs test suite to catch bugs**
-- Grant validation, version sync, and markdown link checks
+- Grant validation and markdown link checks
 - Builds the project to ensure everything works
 - Ensures code quality and catches issues early
 
-**`.github/workflows/deploy.yml`** - Deployment:
-- Builds and commits userscript on push to main/master
-- Makes it available via jsDelivr CDN and raw GitHub URLs
-- Automatically updates when you push changes
-- Uses `[skip ci]` to avoid infinite loops
+**`.github/workflows/version-bump.yml`** - Automated Version Bumping:
+- Manually triggered from GitHub Actions UI
+- Select patch/minor/major version bump
+- **Auto-detects mode** from `package.json` - no manual checkbox needed
+- Builds and creates a GitHub release in one workflow
+- Guards against forgetting to update `repository.url`
+
+**`.github/workflows/release.yml`** - Release Automation (local pushes):
+- Triggers when you push a version tag from your local machine
+- Builds the userscript and creates a GitHub release
+
+### Template Mode vs Userscript Mode
+
+The version-bump workflow automatically detects how to behave based on `package.json`:
+
+```json
+{
+  "userscript": {
+    "templateMode": true   // ← set to false (or remove) when building a real userscript
+  }
+}
+```
+
+| | `templateMode: true` | `templateMode: false` (or absent) |
+|---|---|---|
+| **Updates** | `package.json` only | `package.json` + `meta.json` |
+| **Use case** | Template/boilerplate maintainers | Userscript developers |
+| **Default** | ✅ (ships with template) | Set when starting your userscript |
+
+**When you start using this template**, set `templateMode: false` (or remove the field) in `package.json`. From that point, every version bump will keep `package.json` and `meta.json` in sync.
+
+### Creating a Release
+
+#### Option 1: GitHub Actions (Recommended)
+
+1. Go to **Actions** tab in your GitHub repository
+2. Select **Version Bump** workflow
+3. Click **Run workflow**
+4. Choose the version bump type:
+   - **patch**: 1.0.0 → 1.0.1 (bug fixes, minor updates)
+   - **minor**: 1.0.0 → 1.1.0 (new features)
+   - **major**: 1.0.0 → 2.0.0 (breaking changes)
+5. Click **Run workflow**
+
+This automatically:
+- Validates your `repository.url` is configured correctly
+- Detects template vs userscript mode
+- Updates `package.json` (and `meta.json` in userscript mode)
+- Commits with conventional commits format
+- Creates and pushes the version tag
+- **Builds and creates a GitHub release immediately**
+
+#### Option 2: Local (CLI)
+
+```bash
+# Bump version - commit message is set automatically via .npmrc
+npm version patch   # 1.0.0 → 1.0.1 (bug fixes, minor updates)
+npm version minor   # 1.0.0 → 1.1.0 (new features)
+npm version major   # 1.0.0 → 2.0.0 (breaking changes)
+
+# Push the commit + tag - this triggers release.yml automatically
+git push --follow-tags
+```
+
+> **Note:** If in userscript mode, also update `meta.json` manually to match before pushing.
+
+---
+
+Either method will:
+1. Build your userscript
+2. Create a GitHub release
+3. Attach the built file to the release
+4. Generate release notes from your commits
+
+Users can then install directly from the release:
+```
+https://github.com/user/repo/releases/latest/download/userscript.user.js
+```
 
 **To remove CI/CD:** Simply delete the `.github/workflows/` folder if you don't need it.
+
+## Updating from Template
+
+**Note:** This template is a **starting point** - most users heavily customize it. Updates are **optional** and typically only needed if you want new features from the template.
+
+### When to Update
+
+✅ **Update if you want:**
+- New GitHub Actions workflows or improvements
+- Better build/test configurations
+- Security updates to tooling
+
+❌ **Don't update if:**
+- You've heavily customized configs
+- Everything works fine for you
+- You prefer stability over new features
+
+---
+
+### Manual Update
+
+Check the [template repository](https://github.com/matthiasseghers/typescript-userscript-template) and [CHANGELOG.md](CHANGELOG.md) for changes, then manually update:
+- `.github/workflows/` - CI/CD workflows
+- `eslint.config.js`, `tsconfig.json`, `.prettierrc` - Linting/formatting
+- `rollup.config.js`, `vitest.config.ts` - Build/test config
+- `package.json` - Dependencies (or use Dependabot)
+
+### Dependency Updates
+
+Use Dependabot (included) for automatic dependency updates, or:
+```bash
+npm update              # Update to latest compatible versions
+npm outdated            # Check for major version updates
+```
 
 ## Troubleshooting
 
@@ -461,7 +576,6 @@ Two workflows are included:
 
 **Validation:**
 - `npm run check-grants` - Validate GM API grants
-- `npm run check-version-sync` - Ensure package.json and meta.json versions match
 - `npm run check-links` - Check for broken links in markdown files
 - `npm run validate` - Run all checks including tests (recommended before committing)
 
