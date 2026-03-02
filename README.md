@@ -28,21 +28,11 @@ A professional template for building userscripts with TypeScript, allowing you t
 
 ## Installation
 
-Install your userscript with one click using one of these URLs:
-
-### Option 1: jsDelivr CDN (Recommended - Fast & Cached)
-```
-https://cdn.jsdelivr.net/gh/<yourusername>/typescript-userscript-template@main/dist/userscript.user.js
-```
-
-### Option 2: Raw GitHub (Simple)
-```
-https://raw.githubusercontent.com/<yourusername>/typescript-userscript-template/main/dist/userscript.user.js
-```
-
-**[Install Userscript](https://cdn.jsdelivr.net/gh/matthiasseghers/typescript-userscript-template@main/dist/userscript.user.js)**
+Download the latest built userscript from the [GitHub Releases](https://github.com/<yourusername>/typescript-userscript-template/releases/latest) page and install it in your userscript manager.
 
 *(Replace `yourusername` and `typescript-userscript-template` with your actual GitHub username and repository name)*
+
+> **Note:** `dist/` is gitignored — builds are attached as release artifacts, not committed to the repo.
 
 ## Using This Template
 
@@ -89,7 +79,7 @@ npm install
 ├── tests/
 │   ├── utils.test.ts  # Example tests for utilities
 │   └── index.test.ts  # Example tests for main logic
-├── dist/
+├── dist/                  # Gitignored — created by build
 │   └── userscript.user.js  # Built userscript (auto-generated)
 ├── meta.json          # Userscript metadata
 ├── vitest.config.ts   # Test configuration
