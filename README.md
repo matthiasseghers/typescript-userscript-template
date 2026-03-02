@@ -412,6 +412,8 @@ Three workflows are included:
 - Builds and creates a GitHub release in one workflow
 - Guards against forgetting to update `repository.url`
 
+> ⚠️ **Template mode releases have no build artifact.** Since `meta.json` stays at `1.0.0` (the starting point for users of this template), attaching the built file would show a version mismatch on the release. The release exists purely as a changelog anchor and version marker. Once you set `templateMode: false`, releases will include the built artifact as normal.
+
 **`.github/workflows/release.yml`** - Release Automation (local pushes):
 - Triggers when you push a version tag from your local machine
 - Builds the userscript and creates a GitHub release

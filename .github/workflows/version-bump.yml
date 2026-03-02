@@ -109,13 +109,24 @@ jobs:
           git push origin ${{ steps.version.outputs.new_version }}
 
       - name: Build userscript
+        if: steps.mode.outputs.update_meta == 'true'
         run: npm run build
 
-      - name: Create GitHub Release
+      - name: Create GitHub Release (userscript mode, with artifact)
+        if: steps.mode.outputs.update_meta == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.new_version }}
           files: dist/userscript.user.js
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+
+      - name: Create GitHub Release (template mode, no artifact)
+        if: steps.mode.outputs.update_meta != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.new_version }}
           generate_release_notes: true
           draft: false
           prerelease: false
@@ -125,6 +136,4 @@ jobs:
           echo "### ✅ Version bumped successfully!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**New version:** \`${{ steps.version.outputs.new_version }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Mode:** $([ '${{ steps.mode.outputs.update_meta }}' = 'true' ] && echo 'Userscript (meta.json updated)' || echo 'Template (meta.json unchanged)')" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "A GitHub Release has been created with the built userscript attached." >> $GITHUB_STEP_SUMMARY
+          echo "**Mode:** $([ '${{ steps.mode.outputs.update_meta }}' = 'true' ] && echo 'Userscript (meta.json updated, artifact attached)' || echo 'Template (meta.json unchanged, no artifact)')" >> $GITHUB_STEP_SUMMARY
