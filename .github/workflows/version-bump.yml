@@ -94,7 +94,7 @@ jobs:
       - name: Update CHANGELOG
         uses: stefanzweifel/changelog-updater-action@v1
         with:
-          release-version: ${{ steps.version.outputs.new_version }}
+          latest-version: ${{ steps.version.outputs.new_version }}
 
       - name: Commit and tag
         run: |

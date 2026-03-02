@@ -1,13 +1,10 @@
 {
   "ignorePatterns": [
     {
-      "pattern": "^https://github.com/yourusername"
+      "pattern": "yourusername"
     },
     {
-      "pattern": "^https://cdn.jsdelivr.net/gh/yourusername"
-    },
-    {
-      "pattern": "^https://raw.githubusercontent.com/yourusername"
+      "pattern": "%3Cyourusername%3E"
     }
   ],
   "timeout": "20s",
