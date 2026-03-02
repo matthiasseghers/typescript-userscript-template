@@ -1,0 +1,139 @@
+name: Version Bump
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: 'patch'
+
+permissions:
+  contents: write
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Detect mode and validate
+        id: mode
+        run: |
+          TEMPLATE_REPO="matthiasseghers/typescript-userscript-template"
+          CURRENT_REPO="${{ github.repository }}"
+          PACKAGE_REPO_URL=$(node -p "require('./package.json').repository?.url ?? ''")
+          TEMPLATE_MODE=$(node -p "require('./package.json').userscript?.templateMode ?? false")
+
+          echo "Current repo:    $CURRENT_REPO"
+          echo "Package repo:    $PACKAGE_REPO_URL"
+          echo "Template mode:   $TEMPLATE_MODE"
+
+          # Guard: if repository.url still points to the template repo but we're NOT on it, fail helpfully
+          if [[ "$PACKAGE_REPO_URL" == *"$TEMPLATE_REPO"* ]] && [[ "$CURRENT_REPO" != "$TEMPLATE_REPO" ]]; then
+            echo ""
+            echo "❌ ERROR: You forgot to update repository.url in package.json!"
+            echo "   It still points to the template repo: $PACKAGE_REPO_URL"
+            echo "   Update it to point to YOUR repository before releasing."
+            exit 1
+          fi
+
+          # Determine mode: explicit templateMode flag takes priority
+          if [ "$TEMPLATE_MODE" = "true" ]; then
+            echo "📦 Running in TEMPLATE MODE (templateMode: true in package.json)"
+            echo "   meta.json will NOT be updated."
+            echo "update_meta=false" >> $GITHUB_OUTPUT
+          else
+            echo "📜 Running in USERSCRIPT MODE"
+            echo "   Both package.json and meta.json will be updated."
+            echo "update_meta=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Bump version
+        id: version
+        run: |
+          NEW_VERSION=$(npm version ${{ github.event.inputs.version }} -m "chore: bump version to %s" --no-git-tag-version)
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Bumped package.json to $NEW_VERSION"
+
+          if [ "${{ steps.mode.outputs.update_meta }}" = "true" ]; then
+            VERSION_NUMBER="${NEW_VERSION#v}"
+            node -e "
+              const fs = require('fs');
+              const meta = JSON.parse(fs.readFileSync('meta.json', 'utf8'));
+              meta.version = '$VERSION_NUMBER';
+              fs.writeFileSync('meta.json', JSON.stringify(meta, null, 2) + '\n');
+            "
+            echo "Also bumped meta.json to $VERSION_NUMBER"
+          fi
+
+      - name: Update CHANGELOG
+        uses: stefanzweifel/changelog-updater-action@v1
+        with:
+          latest-version: ${{ steps.version.outputs.new_version }}
+
+      - name: Commit and tag
+        run: |
+          if [ "${{ steps.mode.outputs.update_meta }}" = "true" ]; then
+            git add package.json package-lock.json meta.json CHANGELOG.md
+          else
+            git add package.json package-lock.json CHANGELOG.md
+          fi
+          git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
+          git tag ${{ steps.version.outputs.new_version }}
+          git push origin main
+          git push origin ${{ steps.version.outputs.new_version }}
+
+      - name: Build userscript
+        if: steps.mode.outputs.update_meta == 'true'
+        run: npm run build
+
+      - name: Create GitHub Release (userscript mode, with artifact)
+        if: steps.mode.outputs.update_meta == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.new_version }}
+          files: dist/userscript.user.js
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+
+      - name: Create GitHub Release (template mode, no artifact)
+        if: steps.mode.outputs.update_meta != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.new_version }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+
+      - name: Summary
+        run: |
+          echo "### ✅ Version bumped successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**New version:** \`${{ steps.version.outputs.new_version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Mode:** $([ '${{ steps.mode.outputs.update_meta }}' = 'true' ] && echo 'Userscript (meta.json updated, artifact attached)' || echo 'Template (meta.json unchanged, no artifact)')" >> $GITHUB_STEP_SUMMARY
