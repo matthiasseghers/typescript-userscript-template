@@ -97,6 +97,8 @@ jobs:
           latest-version: ${{ steps.version.outputs.new_version }}
 
       - name: Commit and tag
+        env:
+          HUSKY: '0'
         run: |
           if [ "${{ steps.mode.outputs.update_meta }}" = "true" ]; then
             git add package.json package-lock.json meta.json CHANGELOG.md

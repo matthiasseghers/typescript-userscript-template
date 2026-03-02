@@ -1,7 +1,8 @@
 # TypeScript Userscript Template
 
 [![CI](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/ci.yml/badge.svg)](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/ci.yml)
-[![Release](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/release.yml/badge.svg)](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/release.yml)
+[![Version Bump](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/version-bump.yml/badge.svg)](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/version-bump.yml)
+[![Latest Release](https://img.shields.io/github/v/release/matthiasseghers/typescript-userscript-template)](https://github.com/matthiasseghers/typescript-userscript-template/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A professional template for building userscripts with TypeScript, allowing you to write modular, type-safe, **tested** code that compiles into a single userscript file.
@@ -395,7 +396,7 @@ npm run dev  # Watch mode with sourcemaps
 
 ## CI/CD with GitHub Actions
 
-Three workflows are included:
+Two workflows are included:
 
 **`.github/workflows/ci.yml`** - Continuous Integration:
 - Runs on every push and pull request
@@ -413,10 +414,6 @@ Three workflows are included:
 - Guards against forgetting to update `repository.url`
 
 > ⚠️ **Template mode releases have no build artifact.** Since `meta.json` stays at `1.0.0` (the starting point for users of this template), attaching the built file would show a version mismatch on the release. The release exists purely as a changelog anchor and version marker. Once you set `templateMode: false`, releases will include the built artifact as normal.
-
-**`.github/workflows/release.yml`** - Release Automation (local pushes):
-- Triggers when you push a version tag from your local machine
-- Builds the userscript and creates a GitHub release
 
 ### Template Mode vs Userscript Mode
 
@@ -440,8 +437,6 @@ The version-bump workflow automatically detects how to behave based on `package.
 
 ### Creating a Release
 
-#### Option 1: GitHub Actions (Recommended)
-
 1. Go to **Actions** tab in your GitHub repository
 2. Select **Version Bump** workflow
 3. Click **Run workflow**
@@ -455,31 +450,9 @@ This automatically:
 - Validates your `repository.url` is configured correctly
 - Detects template vs userscript mode
 - Updates `package.json` (and `meta.json` in userscript mode)
-- Commits with conventional commits format
-- Creates and pushes the version tag
-- **Builds and creates a GitHub release immediately**
-
-#### Option 2: Local (CLI)
-
-```bash
-# Bump version - commit message is set automatically via .npmrc
-npm version patch   # 1.0.0 → 1.0.1 (bug fixes, minor updates)
-npm version minor   # 1.0.0 → 1.1.0 (new features)
-npm version major   # 1.0.0 → 2.0.0 (breaking changes)
-
-# Push the commit + tag - this triggers release.yml automatically
-git push --follow-tags
-```
-
-> **Note:** If in userscript mode, also update `meta.json` manually to match before pushing.
-
----
-
-Either method will:
-1. Build your userscript
-2. Create a GitHub release
-3. Attach the built file to the release
-4. Generate release notes from your commits
+- Updates `CHANGELOG.md` — promotes `[Unreleased]` to the new version
+- Commits with conventional commit format and pushes the tag
+- Builds and attaches the userscript to the GitHub release (userscript mode only)
 
 Users can then install directly from the release:
 ```
