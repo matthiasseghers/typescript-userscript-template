@@ -1,0 +1,68 @@
+{
+  "name": "typescript-userscript-template",
+  "version": "1.0.0",
+  "description": "A template for building userscripts with TypeScript",
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c --environment BUILD:production",
+    "watch": "rollup -c -w",
+    "dev": "rollup -c -w --environment BUILD:development",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" \"tests/**/*.ts\" --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "check-grants": "node scripts/check-grants.js",
+    "check-links": "markdown-link-check README.md --config .markdown-link-check.json",
+    "type-check": "tsc --project tsconfig.test.json",
+    "validate": "npm run lint && npm run format:check && npm run type-check && npm run test && npm run check-grants && npm run build",
+    "prepare": "husky || true",
+    "setup": "node scripts/setup.js"
+  },
+  "keywords": [
+    "userscript",
+    "typescript",
+    "template",
+    "tampermonkey",
+    "greasemonkey",
+    "rollup",
+    "userscript-template",
+    "gm-api"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matthiasseghers/typescript-userscript-template.git"
+  },
+  "bugs": {
+    "url": "https://github.com/matthiasseghers/typescript-userscript-template/issues"
+  },
+  "homepage": "https://github.com/matthiasseghers/typescript-userscript-template#readme",
+  "userscript": {
+    "templateMode": true
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-terser": "^1.0.0",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@types/tampermonkey": "^5.0.5",
+    "@vitest/ui": "^4.0.18",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "happy-dom": "^20.8.9",
+    "husky": "^9.0.11",
+    "markdown-link-check": "^3.12.2",
+    "prettier": "^3.7.4",
+    "rollup": "^4.59.0",
+    "rollup-plugin-userscript-metablock": "^0.3.3",
+    "typescript": "^5.3.3",
+    "typescript-eslint": "^8.50.1",
+    "vitest": "^4.0.18"
+  }
+}
