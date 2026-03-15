@@ -1,0 +1,101 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (leave empty for latest)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code (default branch for tag resolution)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG=$(git tag --sort=-version:refname | grep '^v' | head -1)
+            if [ -z "$TAG" ]; then
+              echo "❌ No tags found in repository."
+              exit 1
+            fi
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.tag.outputs.tag }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Detect mode
+        id: mode
+        run: |
+          TEMPLATE_MODE=$(node -p "require('./package.json').userscript?.templateMode ?? false")
+
+          if [ "$TEMPLATE_MODE" = "true" ]; then
+            echo "📦 Template mode — no artifact will be attached."
+            echo "update_meta=false" >> $GITHUB_OUTPUT
+          else
+            echo "📜 Userscript mode — artifact will be built and attached."
+            echo "update_meta=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build userscript
+        if: steps.mode.outputs.update_meta == 'true'
+        run: npm run build
+
+      - name: Create GitHub Release (userscript mode)
+        if: steps.mode.outputs.update_meta == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          files: dist/userscript.user.js
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+
+      - name: Create GitHub Release (template mode)
+        if: steps.mode.outputs.update_meta != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+
+      - name: Summary
+        run: |
+          echo "### ✅ Release created!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag:** \`${{ steps.tag.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Mode:** $([ '${{ steps.mode.outputs.update_meta }}' = 'true' ] && echo 'Userscript (artifact attached)' || echo 'Template (no artifact)')" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY

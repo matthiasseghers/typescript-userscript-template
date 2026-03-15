@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/ci.yml/badge.svg)](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/ci.yml)
 [![Version Bump](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/version-bump.yml/badge.svg)](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/version-bump.yml)
+[![Release](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/release.yml/badge.svg)](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/release.yml)
 [![Latest Release](https://img.shields.io/github/v/release/matthiasseghers/typescript-userscript-template)](https://github.com/matthiasseghers/typescript-userscript-template/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -73,14 +74,16 @@ npm install
 .
 ├── .github/
 │   └── workflows/
-│       └── ci.yml     # GitHub Actions CI workflow
+│       ├── ci.yml           # Continuous integration (lint, test, build)
+│       ├── version-bump.yml # Bumps version and pushes tag
+│       └── release.yml      # Builds and publishes GitHub Release
 ├── src/
 │   ├── index.ts       # Main entry point
 │   └── utils.ts       # Utility functions (example)
 ├── tests/
 │   ├── utils.test.ts  # Example tests for utilities
 │   └── index.test.ts  # Example tests for main logic
-├── dist/                  # Gitignored — created by build
+├── dist/                   # Gitignored — created by build
 │   └── userscript.user.js  # Built userscript (auto-generated)
 ├── meta.json          # Userscript metadata
 ├── vitest.config.ts   # Test configuration
@@ -396,7 +399,7 @@ npm run dev  # Watch mode with sourcemaps
 
 ## CI/CD with GitHub Actions
 
-Two workflows are included:
+Three workflows are included:
 
 **`.github/workflows/ci.yml`** - Continuous Integration:
 - Runs on every push and pull request
@@ -406,18 +409,31 @@ Two workflows are included:
 - Builds the project to ensure everything works
 - Ensures code quality and catches issues early
 
-**`.github/workflows/version-bump.yml`** - Automated Version Bumping:
-- Manually triggered from GitHub Actions UI
-- Select patch/minor/major version bump
-- **Auto-detects mode** from `package.json` - no manual checkbox needed
-- Builds and creates a GitHub release in one workflow
+**`.github/workflows/version-bump.yml`** - Version Bumping:
+- Manually triggered from the GitHub Actions UI
+- Select patch/minor/major bump type
+- **Auto-detects mode** from `package.json` — no manual configuration needed
+- Updates `package.json` (and `meta.json` in userscript mode), updates `CHANGELOG.md`, commits, and pushes a `v*` tag
 - Guards against forgetting to update `repository.url`
 
-> ⚠️ **Template mode releases have no build artifact.** Since `meta.json` stays at `1.0.0` (the starting point for users of this template), attaching the built file would show a version mismatch on the release. The release exists purely as a changelog anchor and version marker. Once you set `templateMode: false`, releases will include the built artifact as normal.
+**`.github/workflows/release.yml`** - Release Publishing:
+- **Triggered automatically** when a `v*` tag is pushed (i.e. after every version bump)
+- Can also be triggered manually from the Actions UI — leave the tag field empty to release the latest tag, or specify an older tag to re-release a specific version
+- Detects template vs userscript mode, builds the artifact if needed, and creates the GitHub Release
+
+### How it fits together
+
+```
+Version Bump (manual) → pushes v* tag → Release (automatic)
+                                      ↑
+                           Release (manual) ─────────────────┘
+```
+
+The release workflow is intentionally decoupled from the bump workflow. It triggers on any `v*` tag regardless of how the tag was created, which means you can also push a tag manually and get a release without going through the bump workflow.
 
 ### Template Mode vs Userscript Mode
 
-The version-bump workflow automatically detects how to behave based on `package.json`:
+The workflows automatically detect how to behave based on `package.json`:
 
 ```json
 {
@@ -430,10 +446,13 @@ The version-bump workflow automatically detects how to behave based on `package.
 | | `templateMode: true` | `templateMode: false` (or absent) |
 |---|---|---|
 | **Updates** | `package.json` only | `package.json` + `meta.json` |
+| **Release artifact** | None | `dist/userscript.user.js` attached |
 | **Use case** | Template/boilerplate maintainers | Userscript developers |
 | **Default** | ✅ (ships with template) | Set when starting your userscript |
 
-**When you start using this template**, set `templateMode: false` (or remove the field) in `package.json`. From that point, every version bump will keep `package.json` and `meta.json` in sync.
+> ⚠️ **Template mode releases have no build artifact.** Since `meta.json` stays at `1.0.0` (the starting point for users of this template), attaching the built file would show a version mismatch on the release. The release exists purely as a changelog anchor and version marker. Once you set `templateMode: false`, releases will include the built artifact as normal.
+
+**When you start using this template**, set `templateMode: false` (or remove the field) in `package.json`. From that point, every version bump will keep `package.json` and `meta.json` in sync and every release will attach the built userscript.
 
 ### Creating a Release
 
@@ -451,13 +470,17 @@ This automatically:
 - Detects template vs userscript mode
 - Updates `package.json` (and `meta.json` in userscript mode)
 - Updates `CHANGELOG.md` — promotes `[Unreleased]` to the new version
-- Commits with conventional commit format and pushes the tag
-- Builds and attaches the userscript to the GitHub release (userscript mode only)
+- Commits and pushes the version tag
+- Triggers the **Release** workflow, which builds and attaches the artifact (userscript mode only)
 
 Users can then install directly from the release:
 ```
 https://github.com/user/repo/releases/latest/download/userscript.user.js
 ```
+
+### Re-releasing or recovering a failed release
+
+If the release workflow fails (e.g. a flaky runner or build error), the tag is already in place from the bump — you don't need to bump again. Just go to **Actions → Release → Run workflow** and leave the tag field empty to retry against the latest tag, or type a specific tag if needed.
 
 **To remove CI/CD:** Simply delete the `.github/workflows/` folder if you don't need it.
 
@@ -519,6 +542,10 @@ npm outdated            # Check for major version updates
 ### Format/lint errors before commit
 - Run `npm run validate` to check everything at once
 - Use `npm run lint:fix` and `npm run format` to auto-fix issues
+
+### Release workflow didn't trigger after version bump
+- Check that the tag was pushed successfully in the Version Bump workflow logs
+- You can trigger the Release workflow manually from the Actions tab — leave the tag field empty to use the latest tag
 
 ## Scripts Reference
 
