@@ -42,7 +42,7 @@ Download the latest built userscript from the [GitHub Releases](https://github.c
 1. Click the "**Use this template**" button at the top of this repository
 2. Choose a name for your new repository
 3. Clone your new repository
-4. Run `npm install`
+4. Run `npm run setup`
 5. Start coding!
 
 **Option 2: Clone Directly**
@@ -51,8 +51,22 @@ git clone https://github.com/yourusername/typescript-userscript-template.git my-
 cd my-userscript
 rm -rf .git  # Remove template git history
 git init     # Start fresh
-npm install
+npm run setup
 ```
+
+### What does `npm run setup` do?
+
+Running `npm run setup` launches an interactive wizard that configures the template for your project in one go:
+
+- Asks for your userscript name, description, author, GitHub username, and repository name
+- Confirms your inputs before making any changes — restarts if anything looks wrong
+- Patches `package.json`, `meta.json`, `README.md`, and `cliff.toml` with your details
+- Sets `templateMode` to `false` so the CI/CD workflows behave correctly from the start
+- Runs `npm install` automatically
+- Removes template-specific files (`CHANGELOG.md`, `MIGRATION_GUIDE.md`) — git-cliff generates a fresh changelog on your first release
+- Removes itself — the setup script has no place in your actual project
+
+After setup completes, everything is configured and ready to go.
 
 ## Features
 
@@ -77,6 +91,8 @@ npm install
 │       ├── ci.yml           # Continuous integration (lint, test, build)
 │       ├── version-bump.yml # Bumps version and pushes tag
 │       └── release.yml      # Builds and publishes GitHub Release
+├── scripts/
+│   └── setup.js       # One-time setup wizard (self-deletes after running)
 ├── src/
 │   ├── index.ts       # Main entry point
 │   └── utils.ts       # Utility functions (example)
@@ -85,6 +101,7 @@ npm install
 │   └── index.test.ts  # Example tests for main logic
 ├── dist/                   # Gitignored — created by build
 │   └── userscript.user.js  # Built userscript (auto-generated)
+├── cliff.toml         # git-cliff changelog configuration
 ├── meta.json          # Userscript metadata
 ├── vitest.config.ts   # Test configuration
 ├── package.json       # Project dependencies
@@ -97,13 +114,13 @@ npm install
 
 ## Quick Start
 
-### 1. Install Dependencies
+### 1. Run Setup
 
 ```bash
-npm install
+npm run setup
 ```
 
-This will also automatically set up git hooks using Husky for pre-commit validation.
+This launches the interactive wizard, patches all files with your project details, and runs `npm install` automatically. See [What does `npm run setup` do?](#what-does-npm-run-setup-do) for details.
 
 ### 2. Configure Your Userscript
 
@@ -145,6 +162,8 @@ This depends on whether you're in **template mode** or **userscript mode** (set 
 | **Userscript mode** | Kept in sync with `meta.json` | Your userscript version (what Tampermonkey shows users) |
 
 In **userscript mode**, both files are always bumped together so your git tag, `package.json`, and `meta.json` all reflect the same version.
+
+> **Note:** If you used `npm run setup`, `templateMode` is already set to `false` and both files are already configured correctly. You don't need to touch this manually.
 
 ### 3. Build Your Userscript
 
@@ -413,7 +432,7 @@ Three workflows are included:
 - Manually triggered from the GitHub Actions UI
 - Select patch/minor/major bump type
 - **Auto-detects mode** from `package.json` — no manual configuration needed
-- Updates `package.json` (and `meta.json` in userscript mode), updates `CHANGELOG.md`, commits, and pushes a `v*` tag
+- Updates `package.json` (and `meta.json` in userscript mode), auto-generates `CHANGELOG.md` from commit messages using `git-cliff`, commits, and pushes a `v*` tag
 - Guards against forgetting to update `repository.url`
 
 **`.github/workflows/release.yml`** - Release Publishing:
@@ -452,7 +471,24 @@ The workflows automatically detect how to behave based on `package.json`:
 
 > ⚠️ **Template mode releases have no build artifact.** Since `meta.json` stays at `1.0.0` (the starting point for users of this template), attaching the built file would show a version mismatch on the release. The release exists purely as a changelog anchor and version marker. Once you set `templateMode: false`, releases will include the built artifact as normal.
 
-**When you start using this template**, set `templateMode: false` (or remove the field) in `package.json`. From that point, every version bump will keep `package.json` and `meta.json` in sync and every release will attach the built userscript.
+**If you used `npm run setup`**, `templateMode` is already `false` and everything is configured correctly.
+
+### Changelog
+
+`CHANGELOG.md` is **automatically generated** from your commit messages on every version bump using [git-cliff](https://github.com/orhun/git-cliff). You never need to write it manually.
+
+Commits are parsed by type and grouped into sections:
+
+| Commit prefix | Changelog section |
+|---|---|
+| `feat:` | Added |
+| `fix:` | Fixed |
+| `refactor:`, `perf:` | Changed |
+| `docs:` | Documentation |
+| `build(deps*)` | Dependencies |
+| `chore:`, `ci:`, `test:`, `style:` | Skipped |
+
+To get clean changelogs, write commits in [conventional commit](https://www.conventionalcommits.org/) format — which this template already encourages via ESLint and Husky.
 
 ### Creating a Release
 
@@ -469,7 +505,7 @@ This automatically:
 - Validates your `repository.url` is configured correctly
 - Detects template vs userscript mode
 - Updates `package.json` (and `meta.json` in userscript mode)
-- Updates `CHANGELOG.md` — promotes `[Unreleased]` to the new version
+- Auto-generates `CHANGELOG.md` from commit messages using `git-cliff`
 - Commits and pushes the version tag
 - Triggers the **Release** workflow, which builds and attaches the artifact (userscript mode only)
 
@@ -548,6 +584,9 @@ npm outdated            # Check for major version updates
 - You can trigger the Release workflow manually from the Actions tab — leave the tag field empty to use the latest tag
 
 ## Scripts Reference
+
+**Setup (one-time):**
+- `npm run setup` - Interactive project setup wizard — configures all files and installs dependencies. Self-deletes after running.
 
 **Build:**
 - `npm run build` - Build the userscript for production (no sourcemaps)
