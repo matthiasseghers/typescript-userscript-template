@@ -11,18 +11,21 @@ export default {
     format: 'iife',
     name: 'UserScript',
     sourcemap: isDevelopment ? 'inline' : false,
-    banner: () => {
-      // The metablock plugin will inject the userscript metadata here
-      return '';
+  },
+  onwarn(warning, warn) {
+    if (warning.plugin === 'typescript' || warning.code === 'PLUGIN_WARNING') {
+      throw new Error(warning.message);
     }
+    warn(warning);
   },
   plugins: [
     resolve(),
     typescript({
-      tsconfig: './tsconfig.json'
+      tsconfig: './tsconfig.json',
+      noEmitOnError: true,
     }),
     metablock({
-      file: './meta.json'
-    })
-  ]
+      file: './meta.json',
+    }),
+  ],
 };
