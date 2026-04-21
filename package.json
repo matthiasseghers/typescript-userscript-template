@@ -1,6 +1,6 @@
 {
   "name": "typescript-userscript-template",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A template for building userscripts with TypeScript",
   "type": "module",
   "scripts": {
