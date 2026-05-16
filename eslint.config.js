@@ -9,7 +9,7 @@ export default tseslint.config(
   {
     languageOptions: {
       parserOptions: {
-        project: './tsconfig.json',
+        project: './tsconfig.test.json',
       },
       globals: {
         console: 'readonly',

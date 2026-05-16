@@ -74,7 +74,7 @@ describe('utils', () => {
       vi.advanceTimersByTime(0);
 
       await expect(promise).rejects.toThrow(
-        'waitForElement: element "#missing" not found within 1000ms',
+        'waitForElement: element "#missing" not found within 1000ms'
       );
     });
   });
