@@ -110,12 +110,6 @@ jobs:
             echo "Also bumped meta.json to $VERSION_NUMBER"
           fi
 
-      - name: Update CHANGELOG
-        uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5 # v4.8.0
-        with:
-          config: cliff.toml
-          args: --tag ${{ steps.version.outputs.new_version }} --output CHANGELOG.md
-
       - name: Commit and tag
         env:
           HUSKY: '0'
@@ -123,9 +117,9 @@ jobs:
           UPDATE_META: ${{ steps.mode.outputs.update_meta }}
         run: |
           if [ "$UPDATE_META" = "true" ]; then
-            git add package.json package-lock.json meta.json CHANGELOG.md
+            git add package.json package-lock.json meta.json
           else
-            git add package.json package-lock.json CHANGELOG.md
+            git add package.json package-lock.json
           fi
           git commit -m "chore: bump version to $NEW_VERSION"
           git tag "$NEW_VERSION"

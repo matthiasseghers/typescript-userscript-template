@@ -60,10 +60,10 @@ Running `npm run setup` launches an interactive wizard that configures the templ
 
 - Asks for your userscript name, description, author, GitHub username, and repository name
 - Confirms your inputs before making any changes — restarts if anything looks wrong
-- Patches `package.json`, `meta.json`, `README.md`, and `cliff.toml` with your details
+- Patches `package.json`, `meta.json`, and `README.md` with your details
 - Sets `templateMode` to `false` so the CI/CD workflows behave correctly from the start
 - Runs `npm install` automatically
-- Removes template-specific files (`CHANGELOG.md`, `MIGRATION_GUIDE.md`) — git-cliff generates a fresh changelog on your first release
+- Removes template-specific files (`MIGRATION_GUIDE.md`)
 - Removes itself — the setup script has no place in your actual project
 
 After setup completes, everything is configured and ready to go.
@@ -101,7 +101,6 @@ After setup completes, everything is configured and ready to go.
 │   └── index.test.ts  # Example tests for main logic
 ├── dist/                   # Gitignored — created by build
 │   └── userscript.user.js  # Built userscript (auto-generated)
-├── cliff.toml         # git-cliff changelog configuration
 ├── meta.json          # Userscript metadata
 ├── vitest.config.ts   # Test configuration
 ├── package.json       # Project dependencies
@@ -419,7 +418,7 @@ Three workflows are included:
 - Manually triggered from the GitHub Actions UI
 - Select patch/minor/major bump type
 - **Auto-detects mode** from `package.json` — no manual configuration needed
-- Updates `package.json` (and `meta.json` in userscript mode), auto-generates `CHANGELOG.md` from commit messages using `git-cliff`, commits, and pushes a `v*` tag
+- Updates `package.json` (and `meta.json` in userscript mode), commits, and pushes a `v*` tag
 - Guards against forgetting to update `repository.url`
 
 **`.github/workflows/release.yml`** - Release Publishing:
@@ -456,26 +455,9 @@ The workflows automatically detect how to behave based on `package.json`:
 | **Use case** | Template/boilerplate maintainers | Userscript developers |
 | **Default** | ✅ (ships with template) | Set when starting your userscript |
 
-> ⚠️ **Template mode releases have no build artifact.** Since `meta.json` stays at `1.0.0` (the starting point for users of this template), attaching the built file would show a version mismatch on the release. The release exists purely as a changelog anchor and version marker. Once you set `templateMode: false`, releases will include the built artifact as normal.
+> ⚠️ **Template mode releases have no build artifact.** Since `meta.json` stays at `1.0.0` (the starting point for users of this template), attaching the built file would show a version mismatch on the release. The release exists purely as a version marker. Once you set `templateMode: false`, releases will include the built artifact as normal.
 
 **If you used `npm run setup`**, `templateMode` is already `false` and everything is configured correctly.
-
-### Changelog
-
-`CHANGELOG.md` is **automatically generated** from your commit messages on every version bump using [git-cliff](https://github.com/orhun/git-cliff). You never need to write it manually.
-
-Commits are parsed by type and grouped into sections:
-
-| Commit prefix | Changelog section |
-|---|---|
-| `feat:` | Added |
-| `fix:` | Fixed |
-| `refactor:`, `perf:` | Changed |
-| `docs:` | Documentation |
-| `build(deps*)` | Dependencies |
-| `chore:`, `ci:`, `test:`, `style:` | Skipped |
-
-To get clean changelogs, write commits in [conventional commit](https://www.conventionalcommits.org/) format — which this template already encourages via ESLint and Husky.
 
 ### Creating a Release
 
@@ -492,9 +474,8 @@ This automatically:
 - Validates your `repository.url` is configured correctly
 - Detects template vs userscript mode
 - Updates `package.json` (and `meta.json` in userscript mode)
-- Auto-generates `CHANGELOG.md` from commit messages using `git-cliff`
 - Commits and pushes the version tag
-- Triggers the **Release** workflow, which builds and attaches the artifact (userscript mode only)
+- Triggers the **Release** workflow, which creates a GitHub Release with auto-generated release notes (and attaches the artifact in userscript mode)
 
 Users can then install directly from the release:
 ```
@@ -527,7 +508,7 @@ If the release workflow fails (e.g. a flaky runner or build error), the tag is a
 
 ### Manual Update
 
-Check the [template repository](https://github.com/matthiasseghers/typescript-userscript-template) and [CHANGELOG.md](CHANGELOG.md) for changes, then manually update:
+Check the [template repository](https://github.com/matthiasseghers/typescript-userscript-template) for changes, then manually update:
 - `.github/workflows/` - CI/CD workflows
 - `eslint.config.js`, `tsconfig.json`, `.prettierrc` - Linting/formatting
 - `rollup.config.js`, `vitest.config.ts` - Build/test config

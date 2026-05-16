@@ -88,13 +88,8 @@ try {
   fs.writeFileSync('README.md', readme);
   console.log('  ✅ README.md');
 
-  if (fs.existsSync('cliff.toml')) {
-    replace('cliff.toml', [[TEMPLATE_REPO, userRepo]]);
-    console.log('  ✅ cliff.toml');
-  }
-
   // Remove template-specific files — not relevant to the user's project
-  for (const file of ['CHANGELOG.md', 'MIGRATION_GUIDE.md']) {
+  for (const file of ['MIGRATION_GUIDE.md']) {
     if (fs.existsSync(file)) {
       fs.rmSync(file);
       console.log(`  ✅ ${file} removed`);
