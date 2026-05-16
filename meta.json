@@ -7,6 +7,6 @@
   "match": [
     "https://example.com/*"
   ],
-  "grant": ["GM_addStyle"],
+  "grant": ["none"],
   "run-at": "document-end"
 }

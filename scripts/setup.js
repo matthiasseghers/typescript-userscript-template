@@ -39,6 +39,13 @@ Please confirm:
 
     const confirm = await ask('Look good? (y/n): ');
     if (confirm.trim().toLowerCase() === 'y') {
+      const required = { name, username, repo };
+      const missing = Object.entries(required).filter(([, v]) => !v.trim());
+      if (missing.length > 0) {
+        console.log(`\n❌ Required fields cannot be empty: ${missing.map(([k]) => k).join(', ')}`);
+        console.log('↩️  Starting over...');
+        continue;
+      }
       return { name, description, author, username, repo };
     }
 
@@ -97,7 +104,9 @@ try {
   // Self-delete
   fs.rmSync('scripts/README.template.md');
   fs.rmSync('scripts/setup.js');
-  try { fs.rmdirSync('scripts'); } catch {}
+  try { fs.rmdirSync('scripts'); } catch (e) {
+    console.warn('  ⚠️  Could not remove scripts/ directory:', e.message);
+  }
   console.log('  ✅ setup script removed');
 
   console.log('\n📦 Installing dependencies...');
