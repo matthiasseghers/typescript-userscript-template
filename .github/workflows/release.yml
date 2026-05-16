@@ -79,7 +79,7 @@ jobs:
 
       - name: Create GitHub Release (userscript mode)
         if: steps.mode.outputs.update_meta == 'true'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
           files: dist/userscript.user.js
@@ -89,7 +89,7 @@ jobs:
 
       - name: Create GitHub Release (template mode)
         if: steps.mode.outputs.update_meta != 'true'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
           generate_release_notes: true
