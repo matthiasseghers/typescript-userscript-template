@@ -67,3 +67,35 @@ jobs:
 
       - name: Check markdown links
         run: npm run check-links
+
+  version-check:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate version is not lower than main
+        run: |
+          CHANGED=$(git diff origin/main...HEAD -- package.json | grep '"version"' | wc -l)
+          if [ "$CHANGED" -eq 0 ]; then
+            echo "ℹ️ Version unchanged in this PR, nothing to check"
+            exit 0
+          fi
+
+          PR_VER=$(node -p "require('./package.json').version")
+          MAIN_VER=$(git show origin/main:package.json | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).version")
+
+          echo "main: $MAIN_VER"
+          echo "PR:   $PR_VER"
+
+          if [ "$(printf '%s\n' "$PR_VER" "$MAIN_VER" | sort -V | head -n1)" = "$PR_VER" ] && [ "$PR_VER" != "$MAIN_VER" ]; then
+            echo "❌ Version regression: PR version ($PR_VER) is lower than main ($MAIN_VER)"
+            echo "   Do not manually edit the version. Use the Version Bump workflow instead."
+            exit 1
+          fi
+
+          echo "✅ Version OK (equal or higher than main)"
