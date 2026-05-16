@@ -9,29 +9,27 @@ export function log(message: string): void {
   console.log(`[UserScript] ${message}`);
 }
 
-// /**
-//  * Waits for an element to appear in the DOM
-//  */
-// export function waitForElement(selector: string, timeout = 5000): Promise<Element> {
-//   return new Promise((resolve, reject) => {
-//     const startTime = Date.now();
-//     const checkElement = () => {
-//       const element = document.querySelector(selector);
-//       if (element) {
-//         resolve(element);
-//       } else if (Date.now() - startTime > timeout) {
-//         reject(new Error(`Timeout waiting for element: ${selector}`));
-//       } else {
-//         setTimeout(checkElement, 100);
-//       }
-//     };
-//     checkElement();
-//   });
-// }
+/**
+ * Polls for an element matching `selector` using requestAnimationFrame.
+ * Resolves once found; rejects after `timeout` ms.
+ */
+export function waitForElement(selector: string, timeout = 5000): Promise<Element> {
+  return new Promise<Element>((resolve, reject) => {
+    const start = performance.now();
 
-// /**
-//  * Add CSS styles using GM_addStyle
-//  */
-// export function addStyles(css: string): void {
-//   GM_addStyle(css);
-// }
+    function poll(): void {
+      const el = document.querySelector(selector);
+      if (el) {
+        resolve(el);
+        return;
+      }
+      if (performance.now() - start >= timeout) {
+        reject(new Error(`waitForElement: element "${selector}" not found within ${timeout}ms`));
+        return;
+      }
+      requestAnimationFrame(poll);
+    }
+
+    requestAnimationFrame(poll);
+  });
+}

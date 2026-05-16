@@ -264,27 +264,14 @@ main();
 ### Example: Creating Utilities
 
 ```typescript
-// src/utils.ts
+// src/utils.ts — log() and waitForElement() ship with the template
 export function log(message: string): void {
   console.log(`[UserScript] ${message}`);
 }
 
-export function waitForElement(selector: string, timeout = 5000): Promise<Element> {
-  return new Promise((resolve, reject) => {
-    const startTime = Date.now();
-    const checkElement = () => {
-      const element = document.querySelector(selector);
-      if (element) {
-        resolve(element);
-      } else if (Date.now() - startTime > timeout) {
-        reject(new Error(`Timeout: ${selector}`));
-      } else {
-        setTimeout(checkElement, 100);
-      }
-    };
-    checkElement();
-  });
-}
+// waitForElement polls with requestAnimationFrame and rejects
+// after a configurable timeout (default 5 000 ms).
+// See src/utils.ts for the full implementation.
 
 // Using GM APIs
 export function addStyles(css: string): void {
