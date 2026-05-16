@@ -3,7 +3,7 @@
     "target": "ES2019",
     "module": "ESNext",
     "lib": ["ES2019", "DOM"],
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
