@@ -21,11 +21,14 @@ const srcDir = path.join(rootDir, 'src');
 const gmApiCalls = new Set();
 
 function scanFile(filePath) {
-  const content = fs.readFileSync(filePath, 'utf8');
-  // Match GM_ function calls (GM_something)
-  const matches = content.matchAll(/\bGM_\w+/g);
+  let content = fs.readFileSync(filePath, 'utf8');
+  // Strip comments so we only detect actual GM_ API usage
+  content = content.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+  // Match GM_ and GM. function calls
+  const matches = content.matchAll(/\bGM[_.]\w+/g);
   for (const match of matches) {
-    gmApiCalls.add(match[0]);
+    // Normalize GM.foo to GM_foo for grants lookup
+    gmApiCalls.add(match[0].replace('GM.', 'GM_'));
   }
 }
 

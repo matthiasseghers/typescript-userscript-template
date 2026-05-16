@@ -99,6 +99,8 @@ try {
   // Self-delete
   fs.rmSync('scripts/README.template.md');
   fs.rmSync('scripts/setup.js');
+  try { fs.rmSync('scripts/check-grants.js'); } catch (_) { /* may not exist */ }
+  try { fs.rmSync('scripts/update-meta-version.js'); } catch (_) { /* may not exist */ }
   try { fs.rmdirSync('scripts'); } catch (e) {
     console.warn('  ⚠️  Could not remove scripts/ directory:', e.message);
   }
