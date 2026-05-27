@@ -149,7 +149,7 @@ Edit `meta.json` to customize your userscript metadata:
 - `grant`: GM API permissions your script needs (see [Available GM APIs](#available-gm-apis))
 - `run-at`: When to run the script (`document-start`, `document-end`, or `document-idle`)
 - `connect`: (Optional) Domains allowed for `GM_xmlhttpRequest` cross-origin requests. Only add if you use `GM_xmlhttpRequest`. Example: `["api.example.com", "cdn.example.org"]`
-- `version`: **This is your userscript version** - what users see in Tampermonkey. Bump this when releasing updates.
+- `version`: **This is your userscript version** - what users see in Tampermonkey. Bump this when releasing updates. It is intentionally decoupled from the template version in `package.json` — the version-bump workflow automatically updates the correct file based on whether `templateMode` is `true` or `false`.
 
 **Versioning strategy:**
 
@@ -157,12 +157,12 @@ This depends on whether you're in **template mode** or **userscript mode** (set 
 
 | | `package.json` | `meta.json` |
 |---|---|---|
-| **Template mode** | Template infrastructure version | Always `1.0.0` - never changed |
-| **Userscript mode** | Kept in sync with `meta.json` | Your userscript version (what Tampermonkey shows users) |
+| **Template mode** | Template infrastructure version (bumped by workflow) | Placeholder `0.1.0` — never changed |
+| **Userscript mode** | Not touched by workflow | Your userscript version (bumped by workflow, shown to users in Tampermonkey) |
 
-In **userscript mode**, both files are always bumped together so your git tag, `package.json`, and `meta.json` all reflect the same version.
+The two versions are **intentionally independent**. In template mode the version-bump workflow runs `npm version` on `package.json`; in userscript mode it runs `node scripts/update-meta-version.js` on `meta.json`. Neither mode touches the other file.
 
-> **Note:** If you used `npm run setup`, `templateMode` is already set to `false` and both files are already configured correctly. You don't need to touch this manually.
+> **Note:** If you used `npm run setup`, `templateMode` is already set to `false` and `meta.json` is ready to track your userscript version. You don't need to touch this manually.
 
 ### 3. Build Your Userscript
 
@@ -418,7 +418,7 @@ Three workflows are included:
 - Manually triggered from the GitHub Actions UI
 - Select patch/minor/major bump type
 - **Auto-detects mode** from `package.json` — no manual configuration needed
-- Updates `package.json` (and `meta.json` in userscript mode), commits, and pushes a `v*` tag
+- Updates `package.json` in template mode or `meta.json` in userscript mode, commits, and pushes a `v*` tag
 - Guards against forgetting to update `repository.url`
 
 **`.github/workflows/release.yml`** - Release Publishing:
@@ -450,12 +450,12 @@ The workflows automatically detect how to behave based on `package.json`:
 
 | | `templateMode: true` | `templateMode: false` (or absent) |
 |---|---|---|
-| **Updates** | `package.json` only | `package.json` + `meta.json` |
+| **Updates** | `package.json` only | `meta.json` only |
 | **Release artifact** | None | `dist/userscript.user.js` attached |
 | **Use case** | Template/boilerplate maintainers | Userscript developers |
 | **Default** | ✅ (ships with template) | Set when starting your userscript |
 
-> ⚠️ **Template mode releases have no build artifact.** Since `meta.json` stays at `1.0.0` (the starting point for users of this template), attaching the built file would show a version mismatch on the release. The release exists purely as a version marker. Once you set `templateMode: false`, releases will include the built artifact as normal.
+> ⚠️ **Template mode releases have no build artifact.** Since `meta.json` stays at `0.1.0` (the clean placeholder for users of this template), attaching the built file would show a version mismatch on the release. The release exists purely as a version marker. Once you set `templateMode: false`, releases will include the built artifact as normal.
 
 **If you used `npm run setup`**, `templateMode` is already `false` and everything is configured correctly.
 
@@ -473,7 +473,7 @@ The workflows automatically detect how to behave based on `package.json`:
 This automatically:
 - Validates your `repository.url` is configured correctly
 - Detects template vs userscript mode
-- Updates `package.json` (and `meta.json` in userscript mode)
+- Updates `package.json` (template mode) or `meta.json` (userscript mode)
 - Commits and pushes the version tag
 - Triggers the **Release** workflow, which creates a GitHub Release with auto-generated release notes (and attaches the artifact in userscript mode)
 

@@ -1,5 +1,5 @@
 /**
- * Example utility functions - add more as needed
+ * Shared userscript utilities: prefixed logging and DOM element polling.
  */
 
 /**

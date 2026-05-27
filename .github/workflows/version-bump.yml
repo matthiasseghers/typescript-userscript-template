@@ -27,29 +27,6 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Validate version integrity
-        run: |
-          CURRENT_VER=$(node -p "require('./package.json').version")
-          LATEST_TAG=$(git tag --sort=-version:refname | grep '^v' | head -1)
-
-          if [ -z "$LATEST_TAG" ]; then
-            echo "ℹ️ No existing tags found, skipping integrity check"
-            exit 0
-          fi
-
-          LATEST_VER="${LATEST_TAG#v}"
-
-          echo "package.json: $CURRENT_VER"
-          echo "latest tag:   $LATEST_TAG"
-
-          if [ "$(printf '%s\n' "$CURRENT_VER" "$LATEST_VER" | sort -V | head -n1)" = "$CURRENT_VER" ] && [ "$CURRENT_VER" != "$LATEST_VER" ]; then
-            echo "❌ package.json version ($CURRENT_VER) is behind latest tag ($LATEST_TAG)"
-            echo "   The version was likely manually edited. Fix package.json before bumping."
-            exit 1
-          fi
-
-          echo "✅ package.json ($CURRENT_VER) is in sync with latest tag ($LATEST_TAG)"
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -86,41 +63,84 @@ jobs:
 
           if [ "$TEMPLATE_MODE" = "true" ]; then
             echo "📦 Running in TEMPLATE MODE (templateMode: true in package.json)"
-            echo "   meta.json will NOT be updated."
-            echo "update_meta=false" >> $GITHUB_OUTPUT
+            echo "   Only package.json will be bumped. meta.json is left untouched."
+            echo "template_mode=true" >> $GITHUB_OUTPUT
           else
             echo "📜 Running in USERSCRIPT MODE"
-            echo "   Both package.json and meta.json will be updated."
-            echo "update_meta=true" >> $GITHUB_OUTPUT
+            echo "   Only meta.json will be bumped. package.json is left untouched."
+            echo "template_mode=false" >> $GITHUB_OUTPUT
           fi
+
+      - name: Validate version integrity
+        env:
+          TEMPLATE_MODE: ${{ steps.mode.outputs.template_mode }}
+        run: |
+          if [ "$TEMPLATE_MODE" = "true" ]; then
+            CURRENT_VER=$(node -p "require('./package.json').version")
+            VERSION_SOURCE="package.json"
+          else
+            CURRENT_VER=$(node -p "require('./meta.json').version")
+            VERSION_SOURCE="meta.json"
+          fi
+
+          LATEST_TAG=$(git tag --sort=-version:refname | grep '^v' | head -1)
+
+          if [ -z "$LATEST_TAG" ]; then
+            echo "ℹ️ No existing tags found, skipping integrity check"
+            exit 0
+          fi
+
+          LATEST_VER="${LATEST_TAG#v}"
+
+          echo "$VERSION_SOURCE: $CURRENT_VER"
+          echo "latest tag:   $LATEST_TAG"
+
+          if [ "$(printf '%s\n' "$CURRENT_VER" "$LATEST_VER" | sort -V | head -n1)" = "$CURRENT_VER" ] && [ "$CURRENT_VER" != "$LATEST_VER" ]; then
+            echo "❌ $VERSION_SOURCE version ($CURRENT_VER) is behind latest tag ($LATEST_TAG)"
+            echo "   The version was likely manually edited. Fix $VERSION_SOURCE before bumping."
+            exit 1
+          fi
+
+          echo "✅ $VERSION_SOURCE ($CURRENT_VER) is in sync with latest tag ($LATEST_TAG)"
 
       - name: Bump version
         id: version
         env:
           BUMP_TYPE: ${{ github.event.inputs.version }}
-          UPDATE_META: ${{ steps.mode.outputs.update_meta }}
+          TEMPLATE_MODE: ${{ steps.mode.outputs.template_mode }}
         run: |
-          NEW_VERSION=$(npm version "$BUMP_TYPE" --no-git-tag-version)
-          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "Bumped package.json to $NEW_VERSION"
-
-          if [ "$UPDATE_META" = "true" ]; then
+          if [ "$TEMPLATE_MODE" = "true" ]; then
+            # Template mode: bump package.json only
+            NEW_VERSION=$(npm version "$BUMP_TYPE" --no-git-tag-version)
+            echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+            echo "Bumped package.json to $NEW_VERSION"
+          else
+            # Userscript mode: bump meta.json only
+            CURRENT=$(node -p "require('./meta.json').version")
+            NEW_VERSION=$(node -e "
+              const v = '$CURRENT'.split('.').map(Number);
+              if ('$BUMP_TYPE' === 'major') { v[0]++; v[1]=0; v[2]=0; }
+              else if ('$BUMP_TYPE' === 'minor') { v[1]++; v[2]=0; }
+              else { v[2]++; }
+              console.log('v' + v.join('.'));
+            ")
             VERSION_NUMBER="${NEW_VERSION#v}"
             node scripts/update-meta-version.js "$VERSION_NUMBER"
-            echo "Also bumped meta.json to $VERSION_NUMBER"
+            echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+            echo "Bumped meta.json to $NEW_VERSION"
           fi
 
       - name: Commit and tag
         env:
           HUSKY: '0'
           NEW_VERSION: ${{ steps.version.outputs.new_version }}
-          UPDATE_META: ${{ steps.mode.outputs.update_meta }}
+          TEMPLATE_MODE: ${{ steps.mode.outputs.template_mode }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          if [ "$UPDATE_META" = "true" ]; then
-            git add package.json package-lock.json meta.json
-          else
+          if [ "$TEMPLATE_MODE" = "true" ]; then
             git add package.json package-lock.json
+          else
+            git add meta.json
           fi
           git commit -m "chore: bump version to $NEW_VERSION"
           git tag "$NEW_VERSION"
@@ -132,6 +152,6 @@ jobs:
           echo "### ✅ Version bumped successfully!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**New version:** \`${{ steps.version.outputs.new_version }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Mode:** $([ '${{ steps.mode.outputs.update_meta }}' = 'true' ] && echo 'Userscript (meta.json updated)' || echo 'Template (meta.json unchanged)')" >> $GITHUB_STEP_SUMMARY
+          echo "**Mode:** $([ '${{ steps.mode.outputs.template_mode }}' = 'true' ] && echo 'Template (package.json bumped)' || echo 'Userscript (meta.json bumped)')" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "The **Release** workflow will now run automatically." >> $GITHUB_STEP_SUMMARY

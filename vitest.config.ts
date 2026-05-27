@@ -9,6 +9,7 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
       include: ['src/**/*.ts'],
       exclude: ['node_modules/', 'dist/'],
+      thresholds: { statements: 80, branches: 80 },
     },
   },
 });

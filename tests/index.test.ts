@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock the utils module
 vi.mock('../src/utils', () => ({
@@ -10,6 +10,12 @@ describe('main', () => {
     vi.clearAllMocks();
     // Clear the module cache to ensure fresh imports in each test
     vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.clearAllTimers();
+    vi.restoreAllMocks();
+    document.body.innerHTML = '';
   });
 
   it('should initialize and call log when imported', async () => {
