@@ -51,6 +51,33 @@ jobs:
           ref: ${{ steps.tag.outputs.tag }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Validate tag matches version file
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          TAG_VERSION="${TAG#v}"
+
+          TEMPLATE_MODE=$(node -p "
+            const pkg = JSON.parse(require('fs').readFileSync('package.json','utf8'));
+            pkg.userscript && pkg.userscript.templateMode ? 'true' : 'false'
+          ")
+
+          if [ "$TEMPLATE_MODE" = "true" ]; then
+            FILE_VERSION=$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")
+            VERSION_SOURCE="package.json"
+          else
+            FILE_VERSION=$(node -p "JSON.parse(require('fs').readFileSync('meta.json','utf8')).version")
+            VERSION_SOURCE="meta.json"
+          fi
+
+          if [ "$TAG_VERSION" != "$FILE_VERSION" ]; then
+            echo "❌ Version mismatch: tag is v${TAG_VERSION} but ${VERSION_SOURCE} has ${FILE_VERSION}"
+            echo "   Use the version-bump workflow to create tags — do not push tags manually."
+            exit 1
+          fi
+
+          echo "✅ Tag v${TAG_VERSION} matches ${VERSION_SOURCE} (${FILE_VERSION})"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

@@ -436,6 +436,8 @@ Version Bump (manual) → pushes v* tag → Release (automatic)
 
 The release workflow is intentionally decoupled from the bump workflow. It triggers on any `v*` tag regardless of how the tag was created, which means you can also push a tag manually and get a release without going through the bump workflow.
 
+> ⚠️ **Always use the version-bump workflow to create tags.** Manually pushed tags will cause `release.yml` to fail if the tag version does not match the version in `package.json` (template mode) or `meta.json` (userscript mode). The error message will show both versions so you can fix the mismatch.
+
 ### Template Mode vs Userscript Mode
 
 The workflows automatically detect how to behave based on `package.json`:
