@@ -89,7 +89,7 @@ try {
   console.log('  ✅ README.md');
 
   // Remove template-specific files — not relevant to the user's project
-  for (const file of ['MIGRATION_GUIDE.md']) {
+  for (const file of ['MIGRATION_GUIDE.md', 'tests/setup.test.ts']) {
     if (fs.existsSync(file)) {
       fs.rmSync(file);
       console.log(`  ✅ ${file} removed`);
@@ -100,10 +100,17 @@ try {
   fs.rmSync('scripts/README.template.md');
   fs.rmSync('scripts/setup.js');
   try { fs.rmSync('scripts/update-meta-version.js'); } catch (_) { /* may not exist */ }
-  try { fs.rmdirSync('scripts'); } catch (e) {
-    console.warn('  ⚠️  Could not remove scripts/ directory:', e.message);
+  const remainingScripts = fs
+    .readdirSync('scripts')
+    .filter((entry) => !entry.startsWith('.'));
+
+  if (remainingScripts.length === 0) {
+    fs.rmdirSync('scripts');
+    console.log('  ✅ setup files removed (scripts/ deleted)');
+  } else {
+    console.log(`  ℹ️  Kept scripts/ (${remainingScripts.join(', ')})`);
+    console.log('     This is expected when project scripts are still needed.');
   }
-  console.log('  ✅ setup script removed');
 
   console.log('\n📦 Installing dependencies...');
   execSync('npm install', { stdio: 'inherit' });
