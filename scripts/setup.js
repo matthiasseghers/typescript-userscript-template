@@ -10,23 +10,15 @@ rl.on('SIGINT', () => {
   process.exit(0);
 });
 
-function replace(filePath, replacements) {
-  let content = fs.readFileSync(filePath, 'utf8');
-  for (const [from, to] of replacements) {
-    content = content.replaceAll(from, to);
-  }
-  fs.writeFileSync(filePath, content);
-}
-
 async function collectInputs() {
   while (true) {
     console.log('\n🛠  TypeScript Userscript Template — Setup\n');
 
-    const name        = await ask('Userscript name: ');
+    const name = await ask('Userscript name: ');
     const description = await ask('Description: ');
-    const author      = await ask('Author (your name): ');
-    const username    = await ask('GitHub username: ');
-    const repo        = await ask('GitHub repository name: ');
+    const author = await ask('Author (your name): ');
+    const username = await ask('GitHub username: ');
+    const repo = await ask('GitHub repository name: ');
 
     console.log(`
 Please confirm:
@@ -57,7 +49,6 @@ try {
   const { name, description, author, username, repo } = await collectInputs();
   rl.close();
 
-  const TEMPLATE_REPO = 'matthiasseghers/typescript-userscript-template';
   const userRepo = `${username}/${repo}`;
 
   console.log('\n📝 Patching files...');
@@ -99,10 +90,12 @@ try {
   // Self-delete
   fs.rmSync('scripts/README.template.md');
   fs.rmSync('scripts/setup.js');
-  try { fs.rmSync('scripts/update-meta-version.js'); } catch (_) { /* may not exist */ }
-  const remainingScripts = fs
-    .readdirSync('scripts')
-    .filter((entry) => !entry.startsWith('.'));
+  try {
+    fs.rmSync('scripts/update-meta-version.js');
+  } catch (_) {
+    /* may not exist */
+  }
+  const remainingScripts = fs.readdirSync('scripts').filter((entry) => !entry.startsWith('.'));
 
   if (remainingScripts.length === 0) {
     fs.rmdirSync('scripts');

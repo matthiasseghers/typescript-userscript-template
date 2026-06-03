@@ -36,6 +36,31 @@ export default tseslint.config(
       'no-undef': 'off',
     },
   },
+  // JavaScript files (scripts/) - disable TypeScript-specific parser options
+  {
+    files: ['**/*.js'],
+    languageOptions: {
+      parserOptions: {
+        project: null,
+      },
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      'no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+    },
+  },
   {
     ignores: ['dist/**', 'node_modules/**', 'rollup.config.js'],
   }
