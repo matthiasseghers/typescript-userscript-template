@@ -23,7 +23,14 @@ export default tseslint.config(
     },
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
       'prettier/prettier': 'error',
       // TypeScript already checks for undefined variables via @types/tampermonkey
       'no-undef': 'off',
