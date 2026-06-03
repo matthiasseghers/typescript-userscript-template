@@ -79,6 +79,8 @@ After setup completes, everything is configured and ready to go.
 - ✅ **Userscript Metadata** - Automatically inject userscript headers from `meta.json`
 - ✅ **Development Mode** - Watch mode with inline sourcemaps for debugging
 - ✅ **Code Quality** - ESLint + Prettier for consistent code style
+- ✅ **Security Scanning** - CodeQL and Semgrep for vulnerability detection
+- ✅ **Dependency Auditing** - Automated npm audit checks in CI
 - ✅ **Pre-commit Hooks** - Automatic validation before commits with Husky
 - ✅ **CI/CD** - GitHub Actions for automated testing and releases
 
@@ -89,6 +91,7 @@ After setup completes, everything is configured and ready to go.
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml           # Continuous integration (lint, test, build)
+│       ├── security.yml     # Security scanning (CodeQL, Semgrep)
 │       ├── version-bump.yml # Bumps version and pushes tag
 │       └── release.yml      # Builds and publishes GitHub Release
 ├── scripts/
@@ -204,9 +207,11 @@ The built userscript will be in `dist/userscript.user.js`.
 
 3. **Lint and format your code**:
    ```bash
-   npm run lint        # Check for errors
-   npm run lint:fix    # Auto-fix errors
-   npm run format      # Format code with Prettier
+   npm run lint              # Check TypeScript files
+   npm run lint:fix          # Auto-fix TypeScript files
+   npm run lint:scripts      # Check JavaScript files in scripts/
+   npm run lint:scripts:fix  # Auto-fix JavaScript files
+   npm run format            # Format code with Prettier
    ```
 
 4. **Run in watch mode** during development:
@@ -351,6 +356,7 @@ Edit `tsconfig.json` to adjust TypeScript compiler options:
 - Target ECMAScript version
 - Strict mode settings
 - Library inclusions
+- `noUnusedLocals` and `noUnusedParameters` - Reports unused variables/parameters at compile time
 - etc.
 
 ### Linting and Formatting
@@ -404,15 +410,22 @@ npm run dev  # Watch mode with sourcemaps
 
 ## CI/CD with GitHub Actions
 
-Three workflows are included:
+Four workflows are included:
 
 **`.github/workflows/ci.yml`** - Continuous Integration:
 - Runs on every push and pull request
-- Linting, formatting, type checking
+- **Dependency audit** (fails on high/critical vulnerabilities)
+- Linting, formatting, type checking (TypeScript + scripts)
 - **Runs test suite to catch bugs**
 - Grant validation and markdown link checks
 - Builds the project to ensure everything works
 - Ensures code quality and catches issues early
+
+**`.github/workflows/security.yml`** - Security Scanning:
+- Runs on push/PR and weekly schedule
+- **CodeQL analysis** for JavaScript/TypeScript security vulnerabilities
+- **Semgrep scanning** for XSS and JavaScript-specific security issues
+- Reports findings to GitHub Security tab
 
 **`.github/workflows/version-bump.yml`** - Version Bumping:
 - Manually triggered from the GitHub Actions UI
@@ -569,11 +582,13 @@ npm outdated            # Check for major version updates
 - `npm run test:coverage` - Generate coverage report
 
 **Code Quality:**
-- `npm run lint` - Check for linting errors
-- `npm run lint:fix` - Auto-fix linting errors
+- `npm run lint` - Check TypeScript files for linting errors
+- `npm run lint:fix` - Auto-fix TypeScript linting errors
+- `npm run lint:scripts` - Check JavaScript files in scripts/
+- `npm run lint:scripts:fix` - Auto-fix JavaScript linting errors
 - `npm run format` - Format code with Prettier
 - `npm run format:check` - Check if code is formatted
-- `npm run type-check` - Run TypeScript type checking
+- `npm run type-check` - Run TypeScript type checking (includes unused code detection)
 
 **Validation:**
 - `npm run check-grants` - Validate GM API grants
