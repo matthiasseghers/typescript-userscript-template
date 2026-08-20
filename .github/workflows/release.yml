@@ -1,0 +1,132 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (leave empty for latest)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code (default branch for tag resolution)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve tag
+        id: tag
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          TAG_INPUT: ${{ github.event.inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ -n "$TAG_INPUT" ]; then
+            echo "tag=$TAG_INPUT" >> $GITHUB_OUTPUT
+          elif [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            TAG=$(git tag --sort=-version:refname | grep '^v' | head -1)
+            if [ -z "$TAG" ]; then
+              echo "ERROR: No tags found in repository."
+              exit 1
+            fi
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
+          else
+            echo "tag=$REF_NAME" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.tag.outputs.tag }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate tag matches version file
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          TAG_VERSION="${TAG#v}"
+
+          TEMPLATE_MODE=$(node -p "
+            const pkg = JSON.parse(require('fs').readFileSync('package.json','utf8'));
+            pkg.userscript && pkg.userscript.templateMode ? 'true' : 'false'
+          ")
+
+          if [ "$TEMPLATE_MODE" = "true" ]; then
+            FILE_VERSION=$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")
+            VERSION_SOURCE="package.json"
+          else
+            FILE_VERSION=$(node -p "JSON.parse(require('fs').readFileSync('meta.json','utf8')).version")
+            VERSION_SOURCE="meta.json"
+          fi
+
+          if [ "$TAG_VERSION" != "$FILE_VERSION" ]; then
+            echo "ERROR: Version mismatch: tag is v${TAG_VERSION} but ${VERSION_SOURCE} has ${FILE_VERSION}"
+            echo "   Use the version-bump workflow to create tags — do not push tags manually."
+            exit 1
+          fi
+
+          echo "Tag v${TAG_VERSION} matches ${VERSION_SOURCE} (${FILE_VERSION})"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Detect mode
+        id: mode
+        run: |
+          TEMPLATE_MODE=$(node -p "require('./package.json').userscript?.templateMode ?? false")
+
+          if [ "$TEMPLATE_MODE" = "true" ]; then
+            echo "Template mode — no artifact will be attached."
+            echo "update_meta=false" >> $GITHUB_OUTPUT
+          else
+            echo "📜 Userscript mode — artifact will be built and attached."
+            echo "update_meta=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build userscript
+        if: steps.mode.outputs.update_meta == 'true'
+        run: npm run build
+
+      - name: Create GitHub Release (userscript mode)
+        if: steps.mode.outputs.update_meta == 'true'
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          files: dist/userscript.user.js
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+
+      - name: Create GitHub Release (template mode)
+        if: steps.mode.outputs.update_meta != 'true'
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+
+      - name: Summary
+        run: |
+          echo "### Release created" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag:** \`${{ steps.tag.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Mode:** $([ '${{ steps.mode.outputs.update_meta }}' = 'true' ] && echo 'Userscript (artifact attached)' || echo 'Template (no artifact)')" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
