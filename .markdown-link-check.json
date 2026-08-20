@@ -1,0 +1,14 @@
+{
+  "ignorePatterns": [
+    {
+      "pattern": "yourusername"
+    },
+    {
+      "pattern": "%3Cyourusername%3E"
+    }
+  ],
+  "timeout": "20s",
+  "retryOn429": true,
+  "retryCount": 3,
+  "fallbackRetryDelay": "30s"
+}
