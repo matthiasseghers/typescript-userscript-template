@@ -12,6 +12,7 @@ jobs:
   # ── CodeQL ───────────────────────────────────────────────────────────────────
   codeql:
     name: CodeQL (TypeScript)
+    if: github.event.repository.visibility == 'public'
     runs-on: ubuntu-latest
     permissions:
       security-events: write
