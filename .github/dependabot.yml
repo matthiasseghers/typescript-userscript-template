@@ -7,6 +7,9 @@ updates:
     groups:
       npm-version:
         applies-to: version-updates
+        update-types:
+          - minor
+          - patch
         patterns:
           - '*'
       npm-security:
@@ -21,6 +24,9 @@ updates:
     groups:
       actions-version:
         applies-to: version-updates
+        update-types:
+          - minor
+          - patch
         patterns:
           - '*'
       actions-security:
