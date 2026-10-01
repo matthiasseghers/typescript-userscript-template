@@ -18,24 +18,23 @@ import { fileURLToPath } from 'node:url';
  */
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SETUP_SCRIPT = path.resolve(__dirname, '..', 'scripts', 'setup.js');
+const SCRIPTS_DIR = path.resolve(__dirname, '..', 'scripts');
+const SETUP_SCRIPT = path.join(SCRIPTS_DIR, 'setup.js');
+const UPDATE_META_VERSION_SCRIPT = path.join(SCRIPTS_DIR, 'update-meta-version.js');
+
+const BASE_ANSWERS = ['My Script', 'A cool script', 'Test Author', 'testuser', 'my-script', 'y'];
+const KEEP_PROVENANCE_ANSWERS = [...BASE_ANSWERS, 'y'];
+const SKIP_PROVENANCE_ANSWERS = [...BASE_ANSWERS, 'n'];
 
 /**
  * A small ESM wrapper that stubs `readline` and `child_process` so
  * setup.js can run without a TTY and without `npm install`.
  */
-function writeRunner(dir: string) {
-  const answers = JSON.stringify([
-    'My Script',
-    'A cool script',
-    'Test Author',
-    'testuser',
-    'my-script',
-    'y',
-  ]);
+function writeRunner(dir: string, answers: string[]) {
+  const answersJson = JSON.stringify(answers);
 
   const readlineStub = [
-    'const _answers = ' + answers + ';',
+    'const _answers = ' + answersJson + ';',
     'let _idx = 0;',
     'const readline = {',
     '  createInterface() {',
@@ -103,7 +102,7 @@ function fixtureMetaJson() {
     {
       name: 'My TypeScript Userscript',
       namespace: 'https://github.com/yourusername',
-      version: '0.1.0',
+      version: '4.2.0',
       description: 'A userscript built with TypeScript',
       author: 'Your Name',
       match: ['https://example.com/*'],
@@ -138,12 +137,16 @@ function setupFixtures() {
   fs.writeFileSync(path.join(tmpDir, 'scripts', 'check-grants.js'), '// stub');
   fs.writeFileSync(path.join(tmpDir, 'src', 'index.ts'), '');
 
-  // Copy the real setup.js so we test the actual code
+  // Copy the real scripts so we test the actual code
   fs.copyFileSync(SETUP_SCRIPT, path.join(tmpDir, 'scripts', 'setup.js'));
+  fs.copyFileSync(
+    UPDATE_META_VERSION_SCRIPT,
+    path.join(tmpDir, 'scripts', 'update-meta-version.js')
+  );
 }
 
-function runSetup() {
-  writeRunner(tmpDir);
+function runSetup(answers: string[]) {
+  writeRunner(tmpDir, answers);
 
   try {
     execFileSync('node', ['_run.js'], {
@@ -157,10 +160,14 @@ function runSetup() {
   }
 }
 
-describe('setup.js preserves check-grants', () => {
+function readTmpJson(relativePath: string) {
+  return JSON.parse(fs.readFileSync(path.join(tmpDir, relativePath), 'utf8'));
+}
+
+describe('setup.js', () => {
   beforeEach(() => {
     setupFixtures();
-    runSetup();
+    runSetup(KEEP_PROVENANCE_ANSWERS);
   });
 
   afterEach(() => {
@@ -171,13 +178,17 @@ describe('setup.js preserves check-grants', () => {
     expect(fs.existsSync(path.join(tmpDir, 'scripts', 'check-grants.js'))).toBe(true);
   });
 
+  it('should keep scripts/update-meta-version.js (release tooling)', () => {
+    expect(fs.existsSync(path.join(tmpDir, 'scripts', 'update-meta-version.js'))).toBe(true);
+  });
+
   it('should keep the check-grants script in package.json', () => {
-    const pkg = JSON.parse(fs.readFileSync(path.join(tmpDir, 'package.json'), 'utf8'));
+    const pkg = readTmpJson('package.json');
     expect(pkg.scripts).toHaveProperty('check-grants');
   });
 
   it('should keep check-grants in the validate script chain', () => {
-    const pkg = JSON.parse(fs.readFileSync(path.join(tmpDir, 'package.json'), 'utf8'));
+    const pkg = readTmpJson('package.json');
     expect(pkg.scripts.validate).toContain('check-grants');
   });
 
@@ -185,5 +196,61 @@ describe('setup.js preserves check-grants', () => {
     const hookPath = path.join(tmpDir, '.husky', 'pre-commit');
     const content = fs.readFileSync(hookPath, 'utf8');
     expect(content).toContain('check-grants');
+  });
+
+  it('should remove setup scaffolding', () => {
+    expect(fs.existsSync(path.join(tmpDir, 'scripts', 'setup.js'))).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, 'scripts', 'README.template.md'))).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, 'MIGRATION_GUIDE.md'))).toBe(false);
+  });
+
+  it('should reset meta.json version to 0.1.0', () => {
+    const meta = readTmpJson('meta.json');
+    expect(meta.version).toBe('0.1.0');
+  });
+
+  it('should remove the userscript key and patch identity', () => {
+    const pkg = readTmpJson('package.json');
+    expect(pkg.userscript).toBeUndefined();
+    expect(pkg.name).toBe('my-script');
+    expect(pkg.repository.url).toBe('https://github.com/testuser/my-script');
+    expect(pkg.scripts.setup).toBeUndefined();
+  });
+
+  it('should record template provenance when kept', () => {
+    const pkg = readTmpJson('package.json');
+    expect(pkg.templateProvenance).toEqual(
+      expect.objectContaining({
+        template: 'matthiasseghers/typescript-userscript-template',
+        version: '4.2.0',
+      })
+    );
+    expect(typeof pkg.templateProvenance.forkedAt).toBe('string');
+  });
+});
+
+describe('setup.js provenance opt-out', () => {
+  beforeEach(() => {
+    setupFixtures();
+    runSetup(SKIP_PROVENANCE_ANSWERS);
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('should not record template provenance', () => {
+    const pkg = readTmpJson('package.json');
+    expect(pkg.templateProvenance).toBeUndefined();
+  });
+
+  it('should still patch the package identity', () => {
+    const pkg = readTmpJson('package.json');
+    expect(pkg.name).toBe('my-script');
+  });
+
+  it('should still reset meta.json version to 0.1.0', () => {
+    const meta = readTmpJson('meta.json');
+    expect(meta.version).toBe('0.1.0');
   });
 });

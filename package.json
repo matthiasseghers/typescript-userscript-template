@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "A template for building userscripts with TypeScript",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "rollup -c --environment BUILD:production",
     "watch": "rollup -c -w",
@@ -45,15 +48,13 @@
     "url": "https://github.com/matthiasseghers/typescript-userscript-template/issues"
   },
   "homepage": "https://github.com/matthiasseghers/typescript-userscript-template#readme",
-  "userscript": {
-    "templateMode": true
-  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-terser": "^1.0.0",
     "@rollup/plugin-typescript": "^12.3.0",
     "@types/tampermonkey": "^5.5.0",
+    "@vitest/coverage-v8": "4.1.11",
     "@vitest/ui": "^4.1.11",
     "eslint": "^10.10.0",
     "eslint-config-prettier": "^10.1.8",
