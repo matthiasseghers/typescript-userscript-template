@@ -3,7 +3,19 @@ import fs from 'fs';
 import { execSync } from 'child_process';
 
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-const ask = (q) => new Promise((res) => rl.question(q, res));
+
+// readline delivers each input line either to a pending rl.question callback
+// or to 'line' listeners — never both. When stdin is piped (e.g. CI), every
+// line can arrive before the next question is asked, so unclaimed lines are
+// buffered here and handed out by ask() in order.
+const bufferedAnswers = [];
+rl.on('line', (line) => bufferedAnswers.push(line));
+
+const ask = (q) => {
+  process.stdout.write(q);
+  if (bufferedAnswers.length > 0) return Promise.resolve(bufferedAnswers.shift());
+  return new Promise((res) => rl.question('', res));
+};
 
 rl.on('SIGINT', () => {
   console.log('\nSetup cancelled.');
