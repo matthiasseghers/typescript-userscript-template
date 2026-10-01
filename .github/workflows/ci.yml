@@ -43,8 +43,8 @@ jobs:
       - name: Check duplicate code
         run: npm run check-duplicates
 
-      - name: Run tests
-        run: npm run test
+      - name: Run tests with coverage
+        run: npm run test:coverage
 
       - name: Build userscript
         run: npm run build
@@ -55,8 +55,8 @@ jobs:
           name: userscript
           path: dist/userscript.user.js
 
-  userscript-mode:
-    name: Validate (userscript mode)
+  post-setup:
+    name: Validate (post-setup state)
     runs-on: ubuntu-latest
     needs: build
 
@@ -70,40 +70,39 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run linter
-        run: npm run lint
-
-      - name: Run formatter check
-        run: npm run format:check
-
-      - name: Run TypeScript type check
-        run: npm run type-check
-
-      - name: Check duplicate code
-        run: npm run check-duplicates
-
-      - name: Run tests
-        run: npm run test
-
-      - name: Simulate post-setup state
+      - name: Seed pre-setup state
         run: |
-          node --input-type=commonjs -e "
+          node -e "
             const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.userscript.templateMode = false;
-            delete pkg.scripts.setup;
-            delete pkg.scripts['check-grants'];
-            if (pkg.scripts.validate) {
-              pkg.scripts.validate = pkg.scripts.validate
-                .replace(/\s*&&\s*npm run check-grants/, '')
-                .replace(/npm run check-grants\s*&&\s*/, '');
-            }
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            const meta = JSON.parse(fs.readFileSync('meta.json', 'utf8'));
+            meta.version = '4.2.0';
+            fs.writeFileSync('meta.json', JSON.stringify(meta, null, 2) + '\n');
           "
-          rm -f scripts/setup.js scripts/README.template.md
+          git tag v9.9.9
+
+      - name: Run the real setup wizard
+        run: printf 'My Script\nA cool script\nTest Author\ntestuser\nmy-script\ny\ny\n' | node scripts/setup.js
+
+      - name: Assert post-setup state
+        run: |
+          test ! -f scripts/setup.js || { echo 'FAIL: scripts/setup.js should be removed'; exit 1; }
+          test ! -f scripts/README.template.md || { echo 'FAIL: scripts/README.template.md should be removed'; exit 1; }
+          test ! -f MIGRATION_GUIDE.md || { echo 'FAIL: MIGRATION_GUIDE.md should be removed'; exit 1; }
+          test ! -f tests/setup.test.ts || { echo 'FAIL: tests/setup.test.ts should be removed'; exit 1; }
+          test -f scripts/update-meta-version.js || { echo 'FAIL: scripts/update-meta-version.js must survive setup'; exit 1; }
+          test -f scripts/check-grants.js || { echo 'FAIL: scripts/check-grants.js must survive setup'; exit 1; }
+          grep -q '"version": "0.1.0"' meta.json || { echo 'FAIL: meta.json version should be reset to 0.1.0'; exit 1; }
+          [ -z "$(git tag -l 'v*')" ] || { echo 'FAIL: inherited v* tags should be deleted'; exit 1; }
+          node -e "
+            const pkg = JSON.parse(require('fs').readFileSync('package.json', 'utf8'));
+            const fail = (msg) => { console.error('FAIL: ' + msg); process.exit(1); };
+            if (pkg.userscript) fail('userscript key should be removed');
+            if (!pkg.templateProvenance) fail('templateProvenance should be recorded');
+            if (pkg.templateProvenance.version !== '4.2.0') fail('templateProvenance.version should record the inherited version');
+            if (!pkg.scripts['check-grants']) fail('check-grants script should survive');
+            if (!pkg.scripts.validate.includes('check-grants')) fail('validate chain should keep check-grants');
+            if (pkg.name !== 'my-script') fail('package name should be normalized');
+          "
 
       - name: Build userscript
         run: npm run build
@@ -130,6 +129,8 @@ jobs:
 
       - name: Check markdown links
         run: npm run check-links
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
   version-check:
     runs-on: ubuntu-latest
@@ -143,21 +144,21 @@ jobs:
 
       - name: Validate version is not lower than main
         run: |
-          CHANGED=$(git diff origin/main...HEAD -- package.json | grep '"version"' | wc -l)
+          CHANGED=$(git diff origin/main...HEAD -- meta.json | grep '"version"' | wc -l)
           if [ "$CHANGED" -eq 0 ]; then
             echo "Version unchanged in this PR, nothing to check"
             exit 0
           fi
 
-          PR_VER=$(node -p "require('./package.json').version")
-          MAIN_VER=$(git show origin/main:package.json | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).version")
+          PR_VER=$(node -p "require('./meta.json').version")
+          MAIN_VER=$(git show origin/main:meta.json | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).version")
 
           echo "main: $MAIN_VER"
           echo "PR:   $PR_VER"
 
           if [ "$(printf '%s\n' "$PR_VER" "$MAIN_VER" | sort -V | head -n1)" = "$PR_VER" ] && [ "$PR_VER" != "$MAIN_VER" ]; then
             echo "ERROR: Version regression: PR version ($PR_VER) is lower than main ($MAIN_VER)"
-            echo "   Do not manually edit the version. Use the Version Bump workflow instead."
+            echo "   Do not manually edit the version. Use the Release workflow (bump input) instead."
             exit 1
           fi
 

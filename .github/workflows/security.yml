@@ -54,7 +54,10 @@ jobs:
         run: npm ci
 
       - name: Audit dependencies
-        run: npm audit --audit-level=high
+        run: |
+          npm audit --audit-level=high --json > npm-audit.json || true
+          node scripts/audit-gate.js
+          rm -f npm-audit.json
 
   # ── Semgrep ───────────────────────────────────────────────────────────────────
   semgrep:

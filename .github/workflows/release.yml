@@ -6,10 +6,16 @@ on:
       - 'v*'
   workflow_dispatch:
     inputs:
-      tag:
-        description: 'Tag to release (leave empty for latest)'
-        required: false
-        type: string
+      bump:
+        description: 'Version bump to apply before releasing (none = re-release the latest tag)'
+        required: true
+        type: choice
+        options:
+          - none
+          - patch
+          - minor
+          - major
+        default: 'none'
 
 permissions:
   contents: write
@@ -19,64 +25,99 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code (default branch for tag resolution)
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve tag
+      - name: Validate repository.url
+        run: |
+          PACKAGE_REPO_URL=$(node -p "require('./package.json').repository?.url ?? ''")
+          CURRENT_REPO="${{ github.repository }}"
+          if [ -n "$PACKAGE_REPO_URL" ] && [[ "$PACKAGE_REPO_URL" != *"$CURRENT_REPO"* ]]; then
+            echo "ERROR: package.json repository.url ($PACKAGE_REPO_URL) does not point to this repository ($CURRENT_REPO)."
+            echo "   Update repository.url before releasing."
+            exit 1
+          fi
+          echo "repository.url OK ($PACKAGE_REPO_URL)"
+
+      - name: Resolve tag (and bump version when requested)
         id: tag
         env:
           EVENT_NAME: ${{ github.event_name }}
-          TAG_INPUT: ${{ github.event.inputs.tag }}
           REF_NAME: ${{ github.ref_name }}
+          BUMP: ${{ github.event.inputs.bump }}
         run: |
-          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ -n "$TAG_INPUT" ]; then
-            echo "tag=$TAG_INPUT" >> $GITHUB_OUTPUT
-          elif [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            TAG=$(git tag --sort=-version:refname | grep '^v' | head -1)
-            if [ -z "$TAG" ]; then
-              echo "ERROR: No tags found in repository."
-              exit 1
-            fi
-            echo "tag=$TAG" >> $GITHUB_OUTPUT
-          else
-            echo "tag=$REF_NAME" >> $GITHUB_OUTPUT
+          if [ "$EVENT_NAME" = "push" ]; then
+            echo "tag=$REF_NAME" >> "$GITHUB_OUTPUT"
+            echo "bumped=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
-      - name: Checkout tag
+          if [ "$BUMP" = "none" ]; then
+            TAG=$(git tag --sort=-version:refname | grep '^v' | head -1)
+            if [ -z "$TAG" ]; then
+              echo "ERROR: No tags found in repository. Use bump: patch/minor/major to create the first release."
+              exit 1
+            fi
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+            echo "bumped=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          CURRENT=$(node -p "require('./meta.json').version")
+          LATEST=$(git tag --sort=-version:refname | grep '^v' | head -1 || true)
+
+          if [ -n "$LATEST" ]; then
+            LATEST_VER="${LATEST#v}"
+            if [ "$(printf '%s\n' "$CURRENT" "$LATEST_VER" | sort -V | head -n1)" = "$CURRENT" ] && [ "$CURRENT" != "$LATEST_VER" ]; then
+              echo "ERROR: meta.json version ($CURRENT) is behind latest tag ($LATEST)."
+              echo "   The version was likely edited manually. Align meta.json before bumping."
+              exit 1
+            fi
+          fi
+
+          NEW_VERSION=$(node -e "
+            const v = '$CURRENT'.split('.').map(Number);
+            if ('$BUMP' === 'major') { v[0]++; v[1] = 0; v[2] = 0; }
+            else if ('$BUMP' === 'minor') { v[1]++; v[2] = 0; }
+            else { v[2]++; }
+            console.log('v' + v.join('.'));
+          ")
+          VERSION_NUMBER="${NEW_VERSION#v}"
+          node scripts/update-meta-version.js "$VERSION_NUMBER"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add meta.json
+          git commit -m "chore: bump version to $NEW_VERSION"
+          git push origin HEAD
+          git tag "$NEW_VERSION"
+          git push origin "$NEW_VERSION"
+
+          echo "tag=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "bumped=true" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout tag (re-release and tag-push paths)
+        if: steps.tag.outputs.bumped == 'false'
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.tag.outputs.tag }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Validate tag matches version file
+      - name: Validate tag matches meta.json
         env:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           TAG_VERSION="${TAG#v}"
-
-          TEMPLATE_MODE=$(node -p "
-            const pkg = JSON.parse(require('fs').readFileSync('package.json','utf8'));
-            pkg.userscript && pkg.userscript.templateMode ? 'true' : 'false'
-          ")
-
-          if [ "$TEMPLATE_MODE" = "true" ]; then
-            FILE_VERSION=$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")
-            VERSION_SOURCE="package.json"
-          else
-            FILE_VERSION=$(node -p "JSON.parse(require('fs').readFileSync('meta.json','utf8')).version")
-            VERSION_SOURCE="meta.json"
-          fi
-
+          FILE_VERSION=$(node -p "require('./meta.json').version")
           if [ "$TAG_VERSION" != "$FILE_VERSION" ]; then
-            echo "ERROR: Version mismatch: tag is v${TAG_VERSION} but ${VERSION_SOURCE} has ${FILE_VERSION}"
-            echo "   Use the version-bump workflow to create tags — do not push tags manually."
+            echo "ERROR: Version mismatch: tag is v${TAG_VERSION} but meta.json has ${FILE_VERSION}"
+            echo "   Use the Release workflow (bump input) to create tags - do not push tags manually."
             exit 1
           fi
-
-          echo "Tag v${TAG_VERSION} matches ${VERSION_SOURCE} (${FILE_VERSION})"
+          echo "Tag v${TAG_VERSION} matches meta.json (${FILE_VERSION})"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -87,38 +128,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Detect mode
-        id: mode
-        run: |
-          TEMPLATE_MODE=$(node -p "require('./package.json').userscript?.templateMode ?? false")
-
-          if [ "$TEMPLATE_MODE" = "true" ]; then
-            echo "Template mode — no artifact will be attached."
-            echo "update_meta=false" >> $GITHUB_OUTPUT
-          else
-            echo "📜 Userscript mode — artifact will be built and attached."
-            echo "update_meta=true" >> $GITHUB_OUTPUT
-          fi
-
       - name: Build userscript
-        if: steps.mode.outputs.update_meta == 'true'
         run: npm run build
 
-      - name: Create GitHub Release (userscript mode)
-        if: steps.mode.outputs.update_meta == 'true'
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
           files: dist/userscript.user.js
-          generate_release_notes: true
-          draft: false
-          prerelease: false
-
-      - name: Create GitHub Release (template mode)
-        if: steps.mode.outputs.update_meta != 'true'
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
-        with:
-          tag_name: ${{ steps.tag.outputs.tag }}
           generate_release_notes: true
           draft: false
           prerelease: false
@@ -128,5 +145,5 @@ jobs:
           echo "### Release created" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Tag:** \`${{ steps.tag.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Mode:** $([ '${{ steps.mode.outputs.update_meta }}' = 'true' ] && echo 'Userscript (artifact attached)' || echo 'Template (no artifact)')" >> $GITHUB_STEP_SUMMARY
+          echo "**Bump:** \`${{ github.event.inputs.bump || 'tag push' }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
