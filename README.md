@@ -1,7 +1,6 @@
 # TypeScript Userscript Template
 
 [![CI](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/ci.yml/badge.svg)](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/ci.yml)
-[![Version Bump](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/version-bump.yml/badge.svg)](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/version-bump.yml)
 [![Release](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/release.yml/badge.svg)](https://github.com/matthiasseghers/typescript-userscript-template/actions/workflows/release.yml)
 [![Latest Release](https://img.shields.io/github/v/release/matthiasseghers/typescript-userscript-template)](https://github.com/matthiasseghers/typescript-userscript-template/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -20,9 +19,9 @@ A professional template for building userscripts with TypeScript, allowing you t
 
 ## Installation
 
-Download the latest built userscript from the [GitHub Releases](https://github.com/<yourusername>/typescript-userscript-template/releases/latest) page and install it in your userscript manager.
+Download the latest built userscript from the [GitHub Releases](https://github.com/matthiasseghers/typescript-userscript-template/releases/latest) page and install it in your userscript manager.
 
-*(Replace `yourusername` and `typescript-userscript-template` with your actual GitHub username and repository name)*
+*(After running setup, your releases live at `https://github.com/<your-username>/<your-repo>/releases/latest`.)*
 
 > **Note:** `dist/` is gitignored — builds are attached as release artifacts, not committed to the repo.
 
@@ -51,9 +50,11 @@ Running `npm run setup` launches an interactive wizard that configures the templ
 - Asks for your userscript name, description, author, GitHub username, and repository name
 - Confirms your inputs before making any changes — restarts if anything looks wrong
 - Patches `package.json`, `meta.json`, and `README.md` with your details
-- Sets `templateMode` to `false` so the CI/CD workflows behave correctly from the start
+- Resets `meta.json`'s version to `0.1.0` so your project starts its own version line
+- Deletes any `v*` tags inherited from the template (relevant when cloning with history)
+- Asks whether to keep a `templateProvenance` record in `package.json` — the template version you started from, used as the "since" marker when adopting template updates later
 - Runs `npm install` automatically
-- Removes template-specific files (`MIGRATION_GUIDE.md`)
+- Removes template-specific files (`MIGRATION_GUIDE.md` and the setup wizard's own test)
 - Removes itself — the setup script has no place in your actual project
 
 After setup completes, everything is configured and ready to go.
@@ -80,16 +81,18 @@ After setup completes, everything is configured and ready to go.
 .
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml           # Continuous integration (lint, test, build)
-│       ├── security.yml     # Security scanning (CodeQL, npm audit, Semgrep)
-│       ├── version-bump.yml # Bumps version and pushes tag
-│       └── release.yml      # Builds and publishes GitHub Release
+│       ├── ci.yml            # Continuous integration (lint, test, build)
+│       ├── security.yml      # Security scanning (CodeQL, npm audit, Semgrep)
+│       └── release.yml       # Bumps version, tags, builds, publishes GitHub Release
 ├── scripts/
-│   └── setup.js       # One-time setup wizard (self-deletes after running)
+│   ├── setup.js               # One-time setup wizard (self-deletes after running)
+│   ├── update-meta-version.js # Bumps meta.json version (used by the release workflow)
+│   └── check-grants.js        # Validates GM API grants in meta.json
 ├── src/
 │   ├── index.ts       # Main entry point
-│   └── utils.ts       # Utility functions (example)
+│   └── utils.ts       # Utility functions (example — replace freely)
 ├── tests/
+│   ├── setup.test.ts  # Tests for the setup wizard (template-only, removed by setup)
 │   ├── utils.test.ts  # Example tests for utilities
 │   └── index.test.ts  # Example tests for main logic
 ├── dist/                   # Gitignored — created by build
@@ -123,7 +126,7 @@ Edit `meta.json` to customize your userscript metadata:
 {
   "name": "My TypeScript Userscript",
   "namespace": "https://github.com/yourusername",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "A userscript built with TypeScript",
   "author": "Your Name",
   "match": [
@@ -143,20 +146,13 @@ Edit `meta.json` to customize your userscript metadata:
 - `grant`: GM API permissions your script needs (see [Available GM APIs](#available-gm-apis))
 - `run-at`: When to run the script (`document-start`, `document-end`, or `document-idle`)
 - `connect`: (Optional) Domains allowed for `GM_xmlhttpRequest` cross-origin requests. Only add if you use `GM_xmlhttpRequest`. Example: `["api.example.com", "cdn.example.org"]`
-- `version`: **This is your userscript version** - what users see in Tampermonkey. Bump this when releasing updates. It is intentionally decoupled from the template version in `package.json` — the version-bump workflow automatically updates the correct file based on whether `templateMode` is `true` or `false`.
+- `version`: **This is your userscript version** - what users see in Tampermonkey. The Release workflow bumps it automatically (see [Creating a Release](#creating-a-release)); it starts at `0.1.0` after setup.
 
-**Versioning strategy:**
+**Versioning:**
 
-This depends on whether you're in **template mode** or **userscript mode** (set via `"templateMode"` in `package.json`):
+`meta.json`'s `version` is the single source of truth — it is the version Tampermonkey shows and the version the Release workflow bumps and tags. The `version` in `package.json` is plain npm metadata: no workflow touches it, and it only matters if you ever publish the project to npm.
 
-| | `package.json` | `meta.json` |
-|---|---|---|
-| **Template mode** | Template infrastructure version (bumped by workflow) | Placeholder `0.1.0` — never changed |
-| **Userscript mode** | Not touched by workflow | Your userscript version (bumped by workflow, shown to users in Tampermonkey) |
-
-The two versions are **intentionally independent**. In template mode the version-bump workflow runs `npm version` on `package.json`; in userscript mode it runs `node scripts/update-meta-version.js` on `meta.json`. Neither mode touches the other file.
-
-> **Note:** If you used `npm run setup`, `templateMode` is already set to `false` and `meta.json` is ready to track your userscript version. You don't need to touch this manually.
+In this template repository, releases demonstrate the pipeline using the bundled example script — a fork's releases look exactly the same, with your own script.
 
 ### 3. Build Your Userscript
 
@@ -317,6 +313,8 @@ All functions have full TypeScript autocomplete and type checking!
 
 - **Tree-shaking**: Unused exports are automatically removed from the bundle. Only code you actually import and use will be included
 
+- **Background tabs**: `waitForElement` polls with `requestAnimationFrame`, which browsers pause in background tabs — polling resumes and the timeout fires once the tab is visible again.
+
 ## Customization
 
 ### Adding Dependencies
@@ -401,7 +399,7 @@ npm run dev  # Watch mode with sourcemaps
 
 ## CI/CD with GitHub Actions
 
-Four workflows are included:
+Three workflows are included:
 
 **`.github/workflows/ci.yml`** - Continuous Integration:
 - Runs on every push and pull request
@@ -409,6 +407,8 @@ Four workflows are included:
 - Linting, formatting, type checking (TypeScript + scripts)
 - **Runs test suite to catch bugs**
 - Grant validation and markdown link checks
+- **Coverage thresholds enforced** — `npm run test:coverage` must meet 80% minimums
+- **Post-setup job** — runs the real setup wizard and asserts the post-setup state
 - Builds the project to ensure everything works
 - Ensures code quality and catches issues early
 
@@ -418,70 +418,36 @@ Four workflows are included:
 - **Semgrep scanning** for XSS and JavaScript-specific security issues
 - Reports findings to GitHub Security tab
 
-**`.github/workflows/version-bump.yml`** - Version Bumping:
-- Manually triggered from the GitHub Actions UI
-- Select patch/minor/major bump type
-- **Auto-detects mode** from `package.json` — no manual configuration needed
-- Updates `package.json` in template mode or `meta.json` in userscript mode, commits, and pushes a `v*` tag
-- Guards against forgetting to update `repository.url`
-
-**`.github/workflows/release.yml`** - Release Publishing:
-- **Triggered automatically** when a `v*` tag is pushed (i.e. after every version bump)
-- Can also be triggered manually from the Actions UI — leave the tag field empty to release the latest tag, or specify an older tag to re-release a specific version
-- Detects template vs userscript mode, builds the artifact if needed, and creates the GitHub Release
+**`.github/workflows/release.yml`** - Release:
+- **Triggered automatically** when a `v*` tag is pushed
+- Can also be triggered manually from the Actions UI: choose a bump type (patch/minor/major) to bump `meta.json`, tag, build, and publish in one run — or `none` to re-release the latest tag (retry after a failed release)
 
 ### How it fits together
 
 ```
-Version Bump (manual) → pushes v* tag → Release (automatic)
-                                      ↑
-                           Release (manual) ─────────────────┘
+Release (manual, bump: patch/minor/major) → bumps meta.json → tags vX.Y.Z → builds → publishes
+Release (manual, bump: none) → re-releases the latest tag
+Release (automatic) → any v* tag push validates and publishes
 ```
 
-The release workflow is intentionally decoupled from the bump workflow. It triggers on any `v*` tag regardless of how the tag was created, which means you can also push a tag manually and get a release without going through the bump workflow.
-
-> **Warning:** Always use the version-bump workflow to create tags. Manually pushed tags will cause `release.yml` to fail if the tag version does not match the version in `package.json` (template mode) or `meta.json` (userscript mode). The error message will show both versions so you can fix the mismatch.
-
-### Template Mode vs Userscript Mode
-
-The workflows automatically detect how to behave based on `package.json`:
-
-```json
-{
-  "userscript": {
-    "templateMode": true   // ← set to false (or remove) when building a real userscript
-  }
-}
-```
-
-| | `templateMode: true` | `templateMode: false` (or absent) |
-|---|---|---|
-| **Updates** | `package.json` only | `meta.json` only |
-| **Release artifact** | None | `dist/userscript.user.js` attached |
-| **Use case** | Template/boilerplate maintainers | Userscript developers |
-| **Default** | Yes (ships with template) | Set when starting your userscript |
-
-> **Note:** Template mode releases have no build artifact. Since `meta.json` stays at `0.1.0` (the clean placeholder for users of this template), attaching the built file would show a version mismatch on the release. The release exists purely as a version marker. Once you set `templateMode: false`, releases will include the built artifact as normal.
-
-**If you used `npm run setup`**, `templateMode` is already `false` and everything is configured correctly.
+> **Warning:** Manually pushed tags must match `meta.json`'s version or the release fails with both versions printed.
 
 ### Creating a Release
 
 1. Go to **Actions** tab in your GitHub repository
-2. Select **Version Bump** workflow
+2. Select the **Release** workflow
 3. Click **Run workflow**
-4. Choose the version bump type:
-   - **patch**: 1.0.0 → 1.0.1 (bug fixes, minor updates)
-   - **minor**: 1.0.0 → 1.1.0 (new features)
-   - **major**: 1.0.0 → 2.0.0 (breaking changes)
+4. Choose the bump type:
+   - **patch**: 0.1.0 → 0.1.1 (bug fixes)
+   - **minor**: 0.1.0 → 0.2.0 (new features)
+   - **major**: 0.1.0 → 1.0.0 (breaking changes)
+   - **none**: re-release the latest tag
 5. Click **Run workflow**
 
 This automatically:
-- Validates your `repository.url` is configured correctly
-- Detects template vs userscript mode
-- Updates `package.json` (template mode) or `meta.json` (userscript mode)
-- Commits and pushes the version tag
-- Triggers the **Release** workflow, which creates a GitHub Release with auto-generated release notes (and attaches the artifact in userscript mode)
+- Validates your `repository.url` points at this repository
+- Bumps `meta.json`, commits, and pushes the `v*` tag (unless bump is `none`)
+- Builds the userscript and creates the GitHub Release with the artifact attached
 
 Users can then install directly from the release:
 ```
@@ -490,45 +456,50 @@ https://github.com/user/repo/releases/latest/download/userscript.user.js
 
 ### Re-releasing or recovering a failed release
 
-If the release workflow fails (e.g. a flaky runner or build error), the tag is already in place from the bump — you don't need to bump again. Just go to **Actions → Release → Run workflow** and leave the tag field empty to retry against the latest tag, or type a specific tag if needed.
+If the release step failed after the bump (e.g. a flaky runner or build error), the tag is already in place — you don't need to bump again. Re-run **Actions → Release → Run workflow** with bump type `none` to re-release the existing tag.
 
 **To remove CI/CD:** Simply delete the `.github/workflows/` folder if you don't need it.
 
 ## Updating from Template
 
-**Note:** This template is a **starting point** - most users heavily customize it. Updates are **optional** and typically only needed if you want new features from the template.
+**Note:** This template is a **starting point** - most users heavily customize it. Updates are **optional** and typically only needed if you want new features from the template. A fork is a frozen snapshot: it never breaks when the template changes.
 
-### When to Update
+### What changed upstream?
 
-**Update if you want:**
+Your `package.json` records the template version you started from (unless you declined during setup):
 
-- New GitHub Actions workflows or improvements
-- Better build/test configurations
-- Security updates to tooling
-
-**Don't update if:**
-
-- You've heavily customized configs
-- Everything works fine for you
-- You prefer stability over new features
-
----
-
-### Manual Update
-
-Check the [template repository](https://github.com/matthiasseghers/typescript-userscript-template) for changes, then manually update:
-- `.github/workflows/` - CI/CD workflows
-- `eslint.config.js`, `tsconfig.json`, `.prettierrc` - Linting/formatting
-- `rollup.config.js`, `vitest.config.ts` - Build/test config
-- `package.json` - Dependencies (or use Dependabot)
-
-### Dependency Updates
-
-Use Dependabot (included) for automatic dependency updates, or:
 ```bash
-npm update              # Update to latest compatible versions
-npm outdated            # Check for major version updates
+npm pkg get templateProvenance
 ```
+
+Then check the [template repository](https://github.com/matthiasseghers/typescript-userscript-template) for releases newer than that version — the release notes describe what changed.
+
+### Adopting updates
+
+```bash
+git remote add template https://github.com/matthiasseghers/typescript-userscript-template.git
+git fetch template
+git checkout template/main -- .github/workflows rollup.config.js eslint.config.js tsconfig.json vitest.config.ts scripts/
+```
+
+This pulls whole files, which is safe when you never customized them. For a single fix, use `git cherry-pick <commit-sha>` instead.
+
+> **Note:** GitHub's **Sync fork** button only exists on true forks. Repos created via **Use this template** are independent repositories, so the git remote recipe above is the reliable update path.
+
+| Template-owned (safe to pull wholesale) | Yours (never touched by updates) |
+|---|---|
+| `.github/workflows/`, `scripts/`, `rollup.config.js`, `eslint.config.js`, `tsconfig.json`, `vitest.config.ts`, `.prettierrc`, `.jscpd.json` | `src/`, `tests/`, `meta.json`, `README.md`, `package.json` identity fields |
+
+### Maintaining multiple scripts from this template
+
+As your collection of userscripts grows, escalate in stages — each stage has a trigger, so don't build ahead of the triggers:
+
+1. **Git-native sync** (always available) — the remote recipe above, per repository
+2. **Reusable workflows in a separate central repo** — when you maintain 3+ actively developed scripts and have manually replicated the same CI change more than once; keep the template self-contained for adopters
+3. **Shared utils as an npm package** — when real shared runtime code emerges across scripts
+4. **Config presets / scaffold CLI** — when config churn or onboarding repetition justifies it
+
+Dependency updates are handled by Dependabot (configured in `.github/dependabot.yml`): weekly minor/patch and security updates for npm and GitHub Actions, grouped into batched PRs. Semver-major bumps are intentionally ignored — apply those deliberately.
 
 ## Troubleshooting
 
@@ -555,14 +526,14 @@ npm outdated            # Check for major version updates
 - Run `npm run validate` to check everything at once
 - Use `npm run lint:fix` and `npm run format` to auto-fix issues
 
-### Release workflow didn't trigger after version bump
-- Check that the tag was pushed successfully in the Version Bump workflow logs
-- You can trigger the Release workflow manually from the Actions tab — leave the tag field empty to use the latest tag
+### Release failed
+- The Release workflow bumps, tags, builds, and publishes in a single run — if a later step failed after the bump, re-run it with bump type `none` to re-release the existing tag
+- Check that `meta.json`'s version matches the tag you are releasing
 
 ## Scripts Reference
 
 **Setup (one-time):**
-- `npm run setup` - Interactive project setup wizard — configures all files and installs dependencies. Self-deletes after running.
+- `npm run setup` - Interactive project setup wizard — configures all files, records template provenance, and installs dependencies. Self-deletes after running.
 
 **Build:**
 - `npm run build` - Build the userscript for production (no sourcemaps)
@@ -572,7 +543,7 @@ npm outdated            # Check for major version updates
 - `npm test` - Run tests once
 - `npm run test:watch` - Watch mode for tests
 - `npm run test:ui` - Interactive test UI dashboard
-- `npm run test:coverage` - Generate coverage report
+- `npm run test:coverage` - Generate coverage report (80% thresholds enforced in CI)
 
 **Code Quality:**
 - `npm run lint` - Check TypeScript files for linting errors
