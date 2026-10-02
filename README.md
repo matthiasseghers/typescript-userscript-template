@@ -31,7 +31,7 @@ Download the latest built userscript from the [GitHub Releases](https://github.c
 2. Choose a name for your new repository
 3. Clone your new repository
 4. Run `npm run setup`
-5. Start coding!
+5. Start coding.
 
 **Option 2: Clone Directly**
 ```bash
@@ -53,7 +53,7 @@ Running `npm run setup` launches an interactive wizard that configures the templ
 - Deletes any `v*` tags inherited from the template (relevant when cloning with history)
 - Asks whether to keep a `templateProvenance` record in `package.json` — the template version you started from, used as the "since" marker when adopting template updates later
 - Runs `npm install` automatically
-- Removes template-specific files (`MIGRATION_GUIDE.md` and the setup wizard's own test)
+- Removes template-specific files (`MIGRATION_GUIDE.md`, the README template, and the setup wizard's own test)
 - Removes itself — the setup script has no place in your actual project
 
 After setup completes, everything is configured and ready to go.
@@ -83,6 +83,8 @@ After setup completes, everything is configured and ready to go.
 │   │   ├── security.yml      # Security scanning (CodeQL, npm audit, Semgrep)
 │   │   └── release.yml       # Bumps version, tags, builds, publishes GitHub Release
 │   └── dependabot.yml        # Weekly dependency updates
+├── .husky/                   # Git hooks (run validate before commits)
+│   └── pre-commit
 ├── scripts/
 │   ├── setup.js               # One-time setup wizard (self-deletes after running)
 │   ├── update-meta-version.js # Bumps meta.json version (used by the release workflow)
@@ -100,6 +102,7 @@ After setup completes, everything is configured and ready to go.
 ├── meta.json                 # Userscript metadata
 ├── vitest.config.ts          # Test configuration
 ├── package.json              # Project dependencies
+├── package-lock.json         # Locked dependency versions
 ├── tsconfig.json             # TypeScript configuration
 ├── tsconfig.test.json        # Type checking incl. tests
 ├── rollup.config.js          # Build configuration

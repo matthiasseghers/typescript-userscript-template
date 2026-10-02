@@ -6,12 +6,7 @@ This guide walks you through migrating an existing userscript to the TypeScript 
 
 **Benefits:**
 
-- **Type safety** - catch errors at compile-time instead of runtime
-- **Modularity** - split code into focused, reusable modules
-- **Testability** - write tests with Vitest
-- **Maintainability** - clear structure makes future changes easier
-- **IDE support** - full autocomplete and refactoring tools
-- **Modern tooling** - ESLint, Prettier, CI/CD out of the box
+The reasons are the ones listed in the README: type safety, modularity, tests, tooling.
 
 **Trade-offs:**
 - Initial time investment (varies by project size)

@@ -25,7 +25,8 @@ Edit `meta.json` to configure your userscript metadata before your first release
 npm run dev          # Watch mode with sourcemaps
 npm run build        # Production build
 npm run type-check   # TypeScript type checking
-npm test             # Run tests
+npm test             # Run tests (CI enforces 80% coverage)
+npm run validate     # All checks (run before pushing)
 npm run lint         # Lint src and test files
 ```
 
