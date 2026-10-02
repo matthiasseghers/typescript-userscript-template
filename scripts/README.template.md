@@ -39,6 +39,8 @@ Run `npm run check-grants` after adding any new `GM_*` or `GM.*` API calls. It s
 1. Go to **Actions → Release** and select a bump type: patch, minor, or major (or `none` to re-release the latest tag)
 2. The workflow bumps `meta.json`, commits, pushes the `v*` tag, builds the userscript, and creates a GitHub Release with the artifact attached
 
+Prefer the terminal? Bump `meta.json` yourself, commit, and push a matching `v*` tag — the workflow validates it and publishes. A tag whose version does not match `meta.json` fails the release.
+
 Your version starts at `0.1.0`. If you kept the `templateProvenance` record during setup, `package.json` notes which template version this project started from — see the template repository's README for how to adopt template updates.
 
 ## License

@@ -453,6 +453,25 @@ This automatically:
 - Bumps `meta.json`, commits, and pushes the `v*` tag (unless bump is `none`)
 - Builds the userscript and creates the GitHub Release with the artifact attached
 
+### Alternative release paths
+
+**From the CLI** (same as the UI path):
+
+```bash
+gh workflow run release.yml -f bump=patch
+```
+
+**By pushing a tag manually** — bump `meta.json`, commit, tag, push; the workflow validates the tag against `meta.json` and publishes:
+
+```bash
+node scripts/update-meta-version.js 0.1.1
+git add meta.json && git commit -m "chore: bump version to v0.1.1"
+git tag v0.1.1
+git push origin main v0.1.1
+```
+
+A tag whose version does not match `meta.json` fails the release with both versions printed. There is no local publish command by design: releases are always built in CI from a tagged state, so every release is reproducible.
+
 Users can then install directly from the release:
 ```
 https://github.com/user/repo/releases/latest/download/userscript.user.js
