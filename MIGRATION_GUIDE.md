@@ -665,3 +665,4 @@ Migrating to TypeScript requires upfront effort but provides lasting value:
 
 The key is incremental progress: **analyze → define types → build modules → test → validate**.
 
+Once migrated, template updates work as described in [docs/UPDATING.md](docs/UPDATING.md).

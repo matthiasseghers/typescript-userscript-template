@@ -15,6 +15,7 @@ A template for building userscripts with TypeScript: modular, type-safe, tested 
 - **Modern tooling** — ESLint, Prettier, Husky, and GitHub Actions already wired up.
 - **Tree-shaking** — unused code is stripped out, so importing libraries doesn't bloat the userscript.
 - **Maintainability** — clear structure plus types means you can come back months later and still understand what you wrote.
+- **Userscript metadata** — injected from `meta.json`, so your script's name, version, and permissions live in one place.
 
 ## Installation
 
@@ -23,6 +24,8 @@ Download the latest built userscript from the [GitHub Releases](https://github.c
 *(After running setup, your releases live at `https://github.com/<your-username>/<your-repo>/releases/latest`.)*
 
 > **Note:** `dist/` is gitignored — builds are attached as release artifacts, not committed to the repo.
+
+Prefer to build it yourself? Clone the repo, run `npm install && npm run build`, and install `dist/userscript.user.js` — see [docs/DEVELOPING.md](docs/DEVELOPING.md).
 
 ## Using This Template
 
@@ -58,21 +61,6 @@ Running `npm run setup` launches an interactive wizard that configures the templ
 
 After setup completes, everything is configured and ready to go.
 
-## Features
-
-- **TypeScript** - full language support with strict type checking
-- **Modular code** - split your userscript into multiple files and modules
-- **Testing** - Vitest, configured for unit and integration tests
-- **Bundling** - Rollup compiles everything into a single userscript file. Development mode (`npm run dev`) adds watch mode with inline sourcemaps for debugging.
-- **Tree-shaking** - unused code is removed from the final bundle
-- **GM API support** - TypeScript types for the Tampermonkey/Greasemonkey APIs
-- **Userscript metadata** - injected from `meta.json`
-- **Code quality** - ESLint and Prettier for consistent style, plus jscpd duplicate-code detection
-- **Security scanning** - CodeQL and Semgrep
-- **Dependency auditing** - npm audit gates production deps in CI; the Security workflow runs full scans
-- **Pre-commit hooks** - Husky validates before each commit
-- **CI/CD** - GitHub Actions for automated testing and releases
-
 ## Project Structure
 
 ```
@@ -85,6 +73,11 @@ After setup completes, everything is configured and ready to go.
 │   └── dependabot.yml        # Weekly dependency updates
 ├── .husky/                   # Git hooks (run validate before commits)
 │   └── pre-commit
+├── docs/                     # Guides for developing, releasing, updating, troubleshooting
+│   ├── DEVELOPING.md         # Writing and building your userscript
+│   ├── CI-CD.md              # Workflows, releases, troubleshooting
+│   ├── UPDATING.md           # Adopting template updates
+│   └── TROUBLESHOOTING.md    # Common problems and fixes
 ├── scripts/
 │   ├── setup.js               # One-time setup wizard (self-deletes after running)
 │   ├── update-meta-version.js # Bumps meta.json version (used by the release workflow)
@@ -149,16 +142,10 @@ Edit `meta.json` to customize your userscript metadata:
 
 **Key fields:**
 - `match`: URLs where your userscript runs
-- `grant`: GM API permissions your script needs (see [Available GM APIs](#available-gm-apis))
+- `grant`: GM API permissions your script needs
 - `run-at`: When to run the script (`document-start`, `document-end`, or `document-idle`)
 - `connect`: (Optional) Domains allowed for `GM_xmlhttpRequest` cross-origin requests. Only add if you use `GM_xmlhttpRequest`. Example: `["api.example.com", "cdn.example.org"]`
-- `version`: **This is your userscript version** - what users see in Tampermonkey. The Release workflow bumps it automatically (see [Creating a Release](#creating-a-release)); it starts at `0.1.0` after setup.
-
-**Versioning:**
-
-`meta.json`'s `version` is the single source of truth — it is the version Tampermonkey shows and the version the Release workflow bumps and tags. The `version` in `package.json` is plain npm metadata: no workflow touches it, and it only matters if you ever publish the project to npm.
-
-In this template repository, releases demonstrate the pipeline using the bundled example script — a fork's releases look exactly the same, with your own script.
+- `version`: **This is your userscript version** - what users see in Tampermonkey. The Release workflow bumps it automatically (see [docs/CI-CD.md](docs/CI-CD.md)); it starts at `0.1.0` after setup.
 
 ### 3. Build Your Userscript
 
@@ -183,387 +170,30 @@ The built userscript will be in `dist/userscript.user.js`.
 
 3. Create a new userscript in your userscript manager and paste the code
 
-## Development Workflow
+## Documentation
 
-1. **Write TypeScript code** in the `src/` directory
-   - `src/index.ts` is the main entry point
-   - Create additional `.ts` files as needed
-   - Import/export modules as usual
+| Guide | Contents |
+|---|---|
+| [docs/DEVELOPING.md](docs/DEVELOPING.md) | Writing and building your userscript: code examples, testing, customization, scripts reference |
+| [docs/CI-CD.md](docs/CI-CD.md) | Workflows, releases, and recovery |
+| [docs/UPDATING.md](docs/UPDATING.md) | Adopting template updates |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common problems and fixes |
 
-2. **Write tests** for your code:
-   ```bash
-   npm test              # Run tests once
-   npm run test:watch    # Watch mode for test-driven development
-   npm run test:ui       # Interactive UI for exploring tests
-   npm run test:coverage # Generate coverage report
-   ```
+The full `GM_*` API is typed via `@types/tampermonkey` — autocomplete as you type. Reference: [Tampermonkey documentation](https://www.tampermonkey.net/documentation.php).
 
-3. **Lint and format your code**:
-   ```bash
-   npm run lint              # Check TypeScript files
-   npm run lint:fix          # Auto-fix TypeScript files
-   npm run lint:scripts      # Check JavaScript files in scripts/
-   npm run lint:scripts:fix  # Auto-fix JavaScript files
-   npm run format            # Format code with Prettier
-   ```
+## Versioning
 
-4. **Run in watch mode** during development:
-   ```bash
-   npm run dev  # Includes inline sourcemaps for debugging
-   ```
+`meta.json`'s `version` is the single source of truth — it is the version Tampermonkey shows and the version the Release workflow bumps and tags. The `version` in `package.json` is plain npm metadata: no workflow touches it, and it only matters if you ever publish the project to npm.
 
-5. **Test in browser**:
-   - After each build, copy the updated `dist/userscript.user.js` to your userscript manager
-   - Or set up automatic reloading (see Tips below)
+In this template repository, releases demonstrate the pipeline using the bundled example script — a fork's releases look exactly the same, with your own script.
 
-## Writing Your Userscript
+## CI/CD
 
-### Example: Testing Your Code
-
-The template includes Vitest for testing. Write tests alongside your code:
-
-```typescript
-// tests/utils.test.ts
-import { describe, it, expect } from 'vitest';
-import { log } from '../src/utils';
-
-describe('utils', () => {
-  it('should log with prefix', () => {
-    // Your test logic here
-  });
-});
-```
-
-See the MIGRATION_GUIDE.md for more testing examples.
-
-### Example: Basic Structure
-
-```typescript
-// src/index.ts
-import { log, waitForElement } from './utils';
-
-async function main(): Promise<void> {
-  log('Userscript started!');
-  
-  try {
-    const element = await waitForElement('#my-element');
-    element.textContent = 'Modified by userscript!';
-  } catch (error) {
-    console.error('Error:', error);
-  }
-}
-
-// Start the userscript
-// Note: With @run-at document-end, the DOM is already loaded
-main();
-```
-
-### Example: Creating Utilities
-
-```typescript
-// src/utils.ts — log() and waitForElement() ship with the template
-export function log(message: string): void {
-  console.log(`[UserScript] ${message}`);
-}
-
-// waitForElement polls with requestAnimationFrame and rejects
-// after a configurable timeout (default 5000 ms).
-// See src/utils.ts for the full implementation.
-
-// Using GM APIs
-export function addStyles(css: string): void {
-  GM_addStyle(css);
-}
-
-export async function store(key: string, value: any): Promise<void> {
-  await GM_setValue(key, value);
-}
-
-export async function retrieve<T>(key: string, defaultValue?: T): Promise<T> {
-  return await GM_getValue(key, defaultValue);
-}
-
-export function notify(text: string, title?: string): void {
-  GM_notification({ text, title: title || 'UserScript' });
-}
-```
-
-### Available GM APIs
-
-The template includes TypeScript support for:
-
-- **`GM_addStyle(css)`** - Add CSS styles to the page
-- **`GM_getValue(key, default)`** - Get stored value (persistent across page loads)
-- **`GM_setValue(key, value)`** - Store value persistently
-- **`GM_deleteValue(key)`** - Delete stored value
-- **`GM_xmlhttpRequest(details)`** - Make cross-origin HTTP requests
-- **`GM_notification(details)`** - Show desktop notifications
-- **`GM_openInTab(url)`** - Open URL in new tab
-- **`GM_setClipboard(text)`** - Copy text to clipboard
-- **`GM_registerMenuCommand(name, fn)`** - Add menu command
-- Full list: [Tampermonkey GM_* documentation](https://www.tampermonkey.net/documentation.php)
-
-## Tips
-
-- Just start typing `GM_` and your editor will autocomplete the available functions.
-
-- **Grant permissions**: Always add the GM functions you use to the `grant` array in [meta.json](meta.json), otherwise they won't work
-
-- **Cross-origin requests**: If you use `GM_xmlhttpRequest` to make requests to external domains, add those specific domains to the `connect` array. Example: `"connect": ["api.github.com", "cdn.example.com"]`. Avoid using `"*"` wildcard for security reasons.
-
-- **Multiple userscripts**: Duplicate this template folder for each userscript project
-
-- **Source maps**: Use `npm run dev` for development builds with inline source maps to debug TypeScript in browser DevTools. Production builds (`npm run build`) exclude source maps for smaller file size.
-
-- **Tree-shaking**: Unused exports are automatically removed from the bundle. Only code you actually import and use will be included
-
-- **Background tabs**: `waitForElement` polls with `requestAnimationFrame`, which browsers pause in background tabs — polling resumes and the timeout fires once the tab is visible again.
-
-## Customization
-
-### Adding Dependencies
-
-You can install and use npm packages:
-
-```bash
-npm install <package-name>
-```
-
-Then import them in your TypeScript files:
-
-```typescript
-import { someFunction } from 'package-name';
-```
-
-### Modifying Build Configuration
-
-Edit `rollup.config.js` to customize the build process:
-- Change output format
-- Add additional plugins
-- Enable/disable source maps (set `sourcemap: true` for debugging)
-- etc.
-
-### TypeScript Configuration
-
-Edit `tsconfig.json` to adjust TypeScript compiler options:
-- Target ECMAScript version
-- Strict mode settings
-- Library inclusions
-- `noUnusedLocals` and `noUnusedParameters` - Reports unused variables/parameters at compile time
-- etc.
-
-### Linting and Formatting
-
-The template includes ESLint and Prettier:
-
-**Configuration files:**
-- `eslint.config.js` - ESLint rules (TypeScript-aware)
-- `.prettierrc` - Code formatting preferences
-- `.prettierignore` - Files to skip formatting
-
-**Customization:**
-- Modify `eslint.config.js` to add/change linting rules
-- Update `.prettierrc` for different formatting preferences
-- Add GM globals to ESLint if you use additional GM functions
-
-## Installation & Distribution
-
-Users can install your userscript in multiple ways:
-
-### Method 1: From GitHub Releases (Recommended)
-
-After creating a release (see [Creating a Release](#creating-a-release)), users can install from:
-
-```
-https://github.com/user/repo/releases/latest/download/userscript.user.js
-```
-
-Replace `user/repo` with your GitHub username and repository name.
-
-### Method 2: Build Locally
-
-Users can clone your repo and build manually:
-
-```bash
-git clone https://github.com/user/repo.git
-cd repo
-npm install
-npm run build
-# Install dist/userscript.user.js in Tampermonkey/Greasemonkey
-```
-
-### Method 3: Development Installation
-
-For development, you can use Tampermonkey's built-in editor or a local file:
-
-```bash
-npm run dev  # Watch mode with sourcemaps
-# Point Tampermonkey to file:///path/to/dist/userscript.user.js
-```
-
-## CI/CD with GitHub Actions
-
-Three workflows are included:
-
-**`.github/workflows/ci.yml`** - Continuous Integration:
-- Runs on every push and pull request
-- **Dependency audit** (fails on high/critical vulnerabilities)
-- Linting, formatting, type checking (TypeScript + scripts)
-- **Runs test suite to catch bugs**
-- Grant validation and markdown link checks (advisory — link failures never block the build)
-- **Coverage thresholds enforced** — `npm run test:coverage` must meet 80% minimums
-- **Post-setup job** — runs the real setup wizard and asserts the post-setup state
-- Builds the project to ensure everything works
-- Ensures code quality and catches issues early
-
-**`.github/workflows/security.yml`** - Security Scanning:
-- Runs on push/PR and weekly schedule
-- **CodeQL analysis** for JavaScript/TypeScript security vulnerabilities (public repositories only — private forks will see this job skipped)
-- **Semgrep scanning** for XSS and JavaScript-specific security issues
-- Reports findings to GitHub Security tab
-
-**`.github/workflows/release.yml`** - Release:
-- **Triggered automatically** when a `v*` tag is pushed
-- Can also be triggered manually from the Actions UI: choose a bump type (patch/minor/major) to bump `meta.json`, tag, build, and publish in one run — or `none` to re-release the latest tag (retry after a failed release)
-
-### How it fits together
-
-```
-Release (manual, bump: patch/minor/major) → bumps meta.json → tags vX.Y.Z → builds → publishes
-Release (manual, bump: none) → re-releases the latest tag
-Release (automatic) → any v* tag push validates and publishes
-```
-
-> **Warning:** Manually pushed tags must match `meta.json`'s version or the release fails with both versions printed.
-
-### Creating a Release
-
-1. Go to **Actions** tab in your GitHub repository
-2. Select the **Release** workflow
-3. Click **Run workflow**
-4. Choose the bump type:
-   - **patch**: 0.1.0 → 0.1.1 (bug fixes)
-   - **minor**: 0.1.0 → 0.2.0 (new features)
-   - **major**: 0.1.0 → 1.0.0 (breaking changes)
-   - **none**: re-release the latest tag
-5. Click **Run workflow**
-
-This automatically:
-- Validates your `repository.url` points at this repository
-- Bumps `meta.json`, commits, and pushes the `v*` tag (unless bump is `none`)
-- Builds the userscript and creates the GitHub Release with the artifact attached
-
-Users can then install directly from the release:
-```
-https://github.com/user/repo/releases/latest/download/userscript.user.js
-```
-
-### Re-releasing or recovering a failed release
-
-If the release step failed after the bump (e.g. a flaky runner or build error), the tag is already in place — you don't need to bump again. Re-run **Actions → Release → Run workflow** with bump type `none` to re-release the existing tag.
-
-**To remove CI/CD:** Simply delete the `.github/workflows/` folder if you don't need it.
+Three GitHub Actions workflows ship with the template: **CI** (lint, test, coverage thresholds, build on every push/PR), **Security** (CodeQL, Semgrep, npm audit — push/PR and weekly), and **Release** (bumps `meta.json`, tags, builds, and publishes a GitHub Release). Full details, release paths (UI, CLI, manual tag), and recovery: [docs/CI-CD.md](docs/CI-CD.md).
 
 ## Updating from Template
 
-**Note:** This template is a **starting point** - most users heavily customize it. Updates are **optional** and typically only needed if you want new features from the template. A fork is a frozen snapshot: it never breaks when the template changes.
-
-### What changed upstream?
-
-Your `package.json` records the template version you started from (unless you declined during setup):
-
-```bash
-npm pkg get templateProvenance
-```
-
-Then check the [template repository](https://github.com/matthiasseghers/typescript-userscript-template) for releases newer than that version — the release notes describe what changed.
-
-### Adopting updates
-
-```bash
-git remote add template https://github.com/matthiasseghers/typescript-userscript-template.git
-git fetch template
-git checkout template/main -- .github/workflows rollup.config.js eslint.config.js tsconfig.json vitest.config.ts scripts/
-```
-
-This pulls whole files, which is safe when you never customized them. For a single fix, use `git cherry-pick <commit-sha>` instead.
-
-> **Note:** GitHub's **Sync fork** button only exists on true forks. Repos created via **Use this template** are independent repositories, so the git remote recipe above is the reliable update path.
-
-| Template-owned (safe to pull wholesale) | Yours (never touched by updates) |
-|---|---|
-| `.github/workflows/`, `scripts/`, `rollup.config.js`, `eslint.config.js`, `tsconfig.json`, `vitest.config.ts`, `.prettierrc`, `.jscpd.json` | `src/`, `tests/`, `meta.json`, `README.md`, `package.json` identity fields |
-
-### Maintaining multiple scripts from this template
-
-As your collection of userscripts grows, escalate in stages — each stage has a trigger, so don't build ahead of the triggers:
-
-1. **Git-native sync** (always available) — the remote recipe above, per repository
-2. **Reusable workflows in a separate central repo** — when you maintain 3+ actively developed scripts and have manually replicated the same CI change more than once; keep the template self-contained for adopters
-3. **Shared utils as an npm package** — when real shared runtime code emerges across scripts
-4. **Config presets / scaffold CLI** — when config churn or onboarding repetition justifies it
-
-Dependency updates are handled by Dependabot (configured in `.github/dependabot.yml`): weekly minor/patch and security updates for npm and GitHub Actions, grouped into batched PRs. Semver-major updates are not ignored: they arrive as individual reviewable Dependabot PRs (the vitest family arrives grouped in one PR so the coverage provider stays in lockstep). Closing a major PR with `@dependabot ignore this major version` suppresses it until the next major — the PR queue is the dashboard.
-
-## Troubleshooting
-
-### Build fails with "Cannot find module"
-- Run `npm install` to ensure all dependencies are installed
-- Delete `node_modules` and `package-lock.json`, then run `npm install` again
-
-### Linting errors about GM_ functions
-- TypeScript handles GM_ type checking via `@types/tampermonkey`
-- Add GM functions you use to `meta.json` grants
-- Run `npm run check-grants` to validate
-
-### Userscript not working in browser
-- Check that all GM functions are listed in `meta.json` grants
-- Verify the `@match` pattern matches your target URLs
-- Check browser console for errors
-
-### TypeScript errors
-- Ensure `@types/tampermonkey` is installed: `npm install --save-dev @types/tampermonkey`
-- Run `npm run type-check` to see all type errors
-- Check that your tsconfig.json is properly configured
-
-### Format/lint errors before commit
-- Run `npm run validate` to check everything at once
-- Use `npm run lint:fix` and `npm run format` to auto-fix issues
-
-### Release failed
-- The Release workflow bumps, tags, builds, and publishes in a single run — if a later step failed after the bump, re-run it with bump type `none` to re-release the existing tag
-- Check that `meta.json`'s version matches the tag you are releasing
-
-## Scripts Reference
-
-**Setup (one-time):**
-- `npm run setup` - Interactive project setup wizard — configures all files, records template provenance, and installs dependencies. Self-deletes after running.
-
-**Build:**
-- `npm run build` - Build the userscript for production (no sourcemaps)
-- `npm run dev` - Watch mode for development (with inline sourcemaps)
-- `npm run watch` - Watch mode (alias of dev)
-
-**Testing:**
-- `npm test` - Run tests once
-- `npm run test:watch` - Watch mode for tests
-- `npm run test:ui` - Interactive test UI dashboard
-- `npm run test:coverage` - Generate coverage report (80% thresholds enforced in CI)
-
-**Code Quality:**
-- `npm run lint` - Check TypeScript files for linting errors
-- `npm run lint:fix` - Auto-fix TypeScript linting errors
-- `npm run lint:scripts` - Check JavaScript files in scripts/
-- `npm run lint:scripts:fix` - Auto-fix JavaScript linting errors
-- `npm run format` - Format code with Prettier
-- `npm run format:check` - Check if code is formatted
-- `npm run type-check` - Run TypeScript type checking (includes unused code detection)
-- `npm run check-duplicates` - Detect duplicated code (jscpd, 5% threshold)
-
-**Validation:**
-- `npm run check-grants` - Validate GM API grants
-- `npm run check-links` - Check for broken links in markdown files
-- `npm run validate` - Run all checks including tests (recommended before committing)
+Updates are optional — a project created from this template is a frozen snapshot and never breaks when the template changes. Two adoption paths are documented in [docs/UPDATING.md](docs/UPDATING.md): in-place updates and starting fresh from the latest template; `npm pkg get templateProvenance` shows which template version you started from.
 
 ## License
 
