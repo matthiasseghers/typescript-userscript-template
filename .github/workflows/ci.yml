@@ -92,6 +92,8 @@ jobs:
           test -f scripts/update-meta-version.js || { echo 'FAIL: scripts/update-meta-version.js must survive setup'; exit 1; }
           test -f scripts/check-grants.js || { echo 'FAIL: scripts/check-grants.js must survive setup'; exit 1; }
           grep -q '"version": "0.1.0"' meta.json || { echo 'FAIL: meta.json version should be reset to 0.1.0'; exit 1; }
+          grep -q 'My Script' README.md || { echo 'FAIL: README should be stamped with the userscript name'; exit 1; }
+          if grep -q '{{' README.md; then echo 'FAIL: README placeholders should be replaced'; exit 1; fi
           [ -z "$(git tag -l 'v*')" ] || { echo 'FAIL: inherited v* tags should be deleted'; exit 1; }
           node -e "
             const pkg = JSON.parse(require('fs').readFileSync('package.json', 'utf8'));
@@ -102,6 +104,10 @@ jobs:
             if (!pkg.scripts['check-grants']) fail('check-grants script should survive');
             if (!pkg.scripts.validate.includes('check-grants')) fail('validate chain should keep check-grants');
             if (pkg.name !== 'my-script') fail('package name should be normalized');
+            if (pkg.repository.url !== 'https://github.com/testuser/my-script') fail('repository.url should be patched');
+            const meta = JSON.parse(require('fs').readFileSync('meta.json', 'utf8'));
+            if (meta.namespace !== 'https://github.com/testuser') fail('meta namespace should be patched');
+            if (meta.name !== 'My Script') fail('meta name should be patched');
           "
 
       - name: Build userscript

@@ -141,9 +141,11 @@ jobs:
           prerelease: false
 
       - name: Summary
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
         run: |
           echo "### Release created" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Tag:** \`${{ steps.tag.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag:** \`$TAG\`" >> $GITHUB_STEP_SUMMARY
           echo "**Bump:** \`${{ github.event.inputs.bump || 'tag push' }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY

@@ -5,6 +5,16 @@ updates:
     schedule:
       interval: 'weekly'
     groups:
+      vitest-family:
+        applies-to: version-updates
+        patterns:
+          - 'vitest'
+          - '@vitest/*'
+      vitest-family-security:
+        applies-to: security-updates
+        patterns:
+          - 'vitest'
+          - '@vitest/*'
       npm-version:
         applies-to: version-updates
         update-types:

@@ -52,11 +52,14 @@ while (changed) {
   changed = false;
   for (const vuln of Object.values(vulnerabilities)) {
     if (ignored.has(vuln.name)) continue;
-    const allIgnored = (vuln.via ?? []).every((entry) => {
-      if (typeof entry === 'string') return ignored.has(entry);
-      const url = entry.url ?? '';
-      return [...IGNORED_GHSA].some((id) => url.includes(id));
-    });
+    const via = vuln.via ?? [];
+    const allIgnored =
+      via.length > 0 &&
+      via.every((entry) => {
+        if (typeof entry === 'string') return ignored.has(entry);
+        const url = entry.url ?? '';
+        return [...IGNORED_GHSA].some((id) => url.includes(id));
+      });
     if (allIgnored) {
       ignored.add(vuln.name);
       changed = true;
@@ -64,9 +67,10 @@ while (changed) {
   }
 }
 
-const findings = Object.values(vulnerabilities).filter(
-  (vuln) => (vuln.severity === 'high' || vuln.severity === 'critical') && !ignored.has(vuln.name)
-);
+const findings = Object.values(vulnerabilities).filter((vuln) => {
+  const severity = String(vuln.severity ?? '').toLowerCase();
+  return (severity === 'high' || severity === 'critical') && !ignored.has(vuln.name);
+});
 
 if (findings.length > 0) {
   for (const vuln of findings) {

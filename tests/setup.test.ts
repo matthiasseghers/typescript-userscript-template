@@ -59,7 +59,7 @@ function writeRunner(dir: string, answers: string[]) {
     '',
     'src = src.replace(',
     '  /import {[^}]*} from [\'"]child_process[\'"];/,',
-    "  'const execSync = () => {};',",
+    "  'const execSync = () => {}; const execFileSync = () => {};',",
     ');',
     '',
     "writeFileSync('scripts/_setup_runner.js', src);",

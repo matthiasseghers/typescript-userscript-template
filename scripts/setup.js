@@ -1,6 +1,6 @@
 import readline from 'readline';
 import fs from 'fs';
-import { execSync } from 'child_process';
+import { execSync, execFileSync } from 'child_process';
 
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
@@ -13,8 +13,10 @@ rl.on('line', (line) => bufferedAnswers.push(line));
 
 const ask = (q) => {
   process.stdout.write(q);
-  if (bufferedAnswers.length > 0) return Promise.resolve(bufferedAnswers.shift());
-  return new Promise((res) => rl.question('', res));
+  if (bufferedAnswers.length > 0) {
+    return Promise.resolve(bufferedAnswers.shift() ?? '');
+  }
+  return new Promise((res) => rl.question('', (a) => res(a ?? '')));
 };
 
 rl.on('SIGINT', () => {
@@ -56,6 +58,10 @@ Please confirm:
       if (!username) problems.push('username is required');
       if (!repo) problems.push('repository name is required');
       if (/\s/.test(username)) problems.push('username must not contain whitespace');
+      if (/^[._]/.test(repo))
+        problems.push('repository name must not start with a dot or underscore');
+      if (!/^[A-Za-z0-9-]+$/.test(username))
+        problems.push('username may only contain letters, digits, and hyphens');
       if (problems.length > 0) {
         console.log(`\nCannot continue: ${problems.join('; ')}`);
         console.log('Starting over...');
@@ -76,10 +82,14 @@ function removeInheritedTags() {
       .map((tag) => tag.trim())
       .filter(Boolean);
     if (tags.length === 0) return;
-    execSync(`git tag -d ${tags.join(' ')}`, { stdio: 'ignore' });
+    for (let i = 0; i < tags.length; i += 50) {
+      execFileSync('git', ['tag', '-d', ...tags.slice(i, i + 50)], { stdio: 'ignore' });
+    }
     console.log(`  removed ${tags.length} inherited template tag(s) (${tags.join(', ')})`);
   } catch (_) {
-    // git unavailable or not a repository — nothing to clean up
+    console.warn(
+      '  warning: could not remove inherited template tags - continuing without tag cleanup'
+    );
   }
 }
 
@@ -145,8 +155,12 @@ try {
   }
 
   // Self-delete setup scaffolding only — update-meta-version.js stays (release tooling)
-  fs.rmSync('scripts/README.template.md');
-  fs.rmSync('scripts/setup.js');
+  if (fs.existsSync('scripts/README.template.md')) {
+    fs.rmSync('scripts/README.template.md');
+  }
+  if (fs.existsSync('scripts/setup.js')) {
+    fs.rmSync('scripts/setup.js');
+  }
   const remainingScripts = fs
     .readdirSync('scripts')
     .filter((entry) => !entry.startsWith('.') && entry !== '_setup_runner.js');
