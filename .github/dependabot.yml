@@ -4,6 +4,7 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+    # Group assignment is first-match-wins: vitest-family claims vitest and @vitest/* before the catch-all groups, keeping the coverage provider in lockstep with the runner.
     groups:
       vitest-family:
         applies-to: version-updates
@@ -26,9 +27,6 @@ updates:
         applies-to: security-updates
         patterns:
           - '*'
-    ignore:
-      - dependency-name: '*'
-        update-types: ['version-update:semver-major']
 
   - package-ecosystem: 'github-actions'
     directory: '/'
@@ -46,6 +44,3 @@ updates:
         applies-to: security-updates
         patterns:
           - '*'
-    ignore:
-      - dependency-name: '*'
-        update-types: ['version-update:semver-major']

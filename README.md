@@ -500,7 +500,7 @@ As your collection of userscripts grows, escalate in stages — each stage has a
 3. **Shared utils as an npm package** — when real shared runtime code emerges across scripts
 4. **Config presets / scaffold CLI** — when config churn or onboarding repetition justifies it
 
-Dependency updates are handled by Dependabot (configured in `.github/dependabot.yml`): weekly minor/patch and security updates for npm and GitHub Actions, grouped into batched PRs. Semver-major bumps are intentionally ignored — apply those deliberately.
+Dependency updates are handled by Dependabot (configured in `.github/dependabot.yml`): weekly minor/patch and security updates for npm and GitHub Actions, grouped into batched PRs. Semver-major updates are not ignored: they arrive as individual reviewable Dependabot PRs (the vitest family arrives grouped in one PR so the coverage provider stays in lockstep). Closing a major PR with `@dependabot ignore this major version` suppresses it until the next major — the PR queue is the dashboard.
 
 ## Troubleshooting
 
