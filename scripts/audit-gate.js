@@ -67,6 +67,20 @@ while (changed) {
   }
 }
 
+// Stale carve-out reminder: an ignored advisory that no longer appears in the
+// report means the chain is fixed and the entry can be removed. On a fully
+// clean audit this warning firing is correct. Advisory only — never gates.
+const reportedUrls = Object.values(vulnerabilities).flatMap((vuln) =>
+  (vuln.via ?? []).map((entry) => (typeof entry === 'string' ? '' : (entry.url ?? '')))
+);
+for (const id of IGNORED_GHSA) {
+  if (!reportedUrls.some((url) => url.includes(id))) {
+    console.warn(
+      `npm audit gate: ignored advisory ${id} no longer appears in the report - the carve-out is no longer needed, consider removing it from IGNORED_GHSA`
+    );
+  }
+}
+
 const findings = Object.values(vulnerabilities).filter((vuln) => {
   const severity = String(vuln.severity ?? '').toLowerCase();
   return (severity === 'high' || severity === 'critical') && !ignored.has(vuln.name);

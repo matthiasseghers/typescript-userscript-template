@@ -4,6 +4,9 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 5
     # Group assignment is first-match-wins: vitest-family claims vitest and @vitest/* before the catch-all groups, keeping the coverage provider in lockstep with the runner.
     groups:
       vitest-family:
@@ -32,6 +35,9 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 5
     groups:
       actions-version:
         applies-to: version-updates
