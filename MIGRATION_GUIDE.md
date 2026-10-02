@@ -30,19 +30,24 @@ This guide walks you through migrating an existing userscript to the TypeScript 
 
 1. **Create project from template**
    ```bash
-   # Use the template on GitHub or clone directly
+   # Use the template on GitHub ("Use this template" button) or clone directly
    git clone https://github.com/yourusername/typescript-userscript-template.git my-userscript
    cd my-userscript
-   npm install
    ```
 
-2. **Configure metadata**
+2. **Run setup**
+   ```bash
+   npm run setup
+   ```
+   The interactive wizard patches `package.json`, `meta.json`, and `README.md` with your project details, resets the version to `0.1.0`, and installs dependencies.
+
+3. **Configure metadata**
    
-   Update `meta.json` with your userscript details:
+   Adjust `meta.json`'s `match` and `grant` for your target site:
    ```json
    {
      "name": "Your Userscript Name",
-     "version": "1.0.0",
+     "version": "0.1.0",
      "description": "...",
      "author": "Your Name",
      "match": ["https://example.com/*"],
@@ -51,7 +56,7 @@ This guide walks you through migrating an existing userscript to the TypeScript 
    }
    ```
 
-3. **Test the build**
+4. **Test the build**
    ```bash
    npm run build
    # Verify dist/userscript.user.js was created
@@ -463,7 +468,7 @@ Write tests to verify your modules work correctly. The template includes Vitest.
 1. **Run all checks**
    ```bash
    npm run validate
-   # Runs: lint, format, type-check, tests, build
+   # Runs: lint, format:check, type-check, tests, grant checks, duplicate check, build
    ```
 
 2. **Test in browser**
@@ -550,7 +555,7 @@ async function main() {
 **Before (no type safety):**
 ```javascript
 input.addEventListener('input', function(e) {
-  var value = e.target.value;  // Any type!
+  var value = e.target.value;  // any type
   doSomething(value);
 });
 ```
@@ -571,7 +576,7 @@ input.addEventListener('input', handleInput);
 **Before (unsafe global):**
 ```javascript
 // @require https://example.com/library.js
-var result = window.Library.method(data);  // No types!
+var result = window.Library.method(data);  // no types
 ```
 
 **After (typed):**
@@ -585,7 +590,7 @@ declare global {
   }
 }
 
-// Now fully typed with autocomplete!
+// typed — autocomplete works
 const result = window.Library?.method(data);
 ```
 
@@ -602,7 +607,7 @@ export function unusedFunction() { ... }
 
 // Stays because it's called
 export function usedFunction() { ... }
-usedFunction();  // Called!
+usedFunction();  // keep this call, or tree-shaking drops the function
 ```
 
 ### Debugging with Sourcemaps
@@ -661,9 +666,7 @@ Migrating to TypeScript requires upfront effort but provides lasting value:
 - Easier to maintain and extend in the future
 - Better IDE support (autocomplete, refactoring)
 - Tests give confidence when making changes
-- Professional development workflow
+- CI, linting, and formatting run the same way locally and in GitHub Actions
 
 The key is incremental progress: **analyze → define types → build modules → test → validate**.
-
-Good luck with your migration!
 

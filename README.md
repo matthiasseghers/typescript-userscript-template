@@ -5,15 +5,14 @@
 [![Latest Release](https://img.shields.io/github/v/release/matthiasseghers/typescript-userscript-template)](https://github.com/matthiasseghers/typescript-userscript-template/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A professional template for building userscripts with TypeScript, allowing you to write modular, type-safe, **tested** code that compiles into a single userscript file.
+A template for building userscripts with TypeScript: modular, type-safe, tested code that compiles into a single userscript file.
 
 ## Why Use This Template?
 
-- **Type safety** — catch bugs at compile-time instead of in production. TypeScript stops common errors before they reach users.
+- **Type safety** — catch bugs at compile time, with full autocomplete for GM APIs and go-to-definition across the codebase.
 - **Modularity** — split monolithic scripts into focused, reusable modules instead of scrolling through 1000+ line files.
-- **Built-in testing** — write tests with Vitest and verify your code works before releasing it.
-- **IDE support** — full autocomplete for GM APIs, refactoring, and go-to-definition across the codebase.
-- **Modern tooling** — ESLint, Prettier, Husky, and GitHub Actions already configured.
+- **Built-in testing** — Vitest is configured; verify your code works before releasing it.
+- **Modern tooling** — ESLint, Prettier, Husky, and GitHub Actions already wired up.
 - **Tree-shaking** — unused code is stripped out, so importing libraries doesn't bloat the userscript.
 - **Maintainability** — clear structure plus types means you can come back months later and still understand what you wrote.
 
@@ -61,18 +60,17 @@ After setup completes, everything is configured and ready to go.
 
 ## Features
 
-- **TypeScript support** - full TypeScript features and type checking
+- **TypeScript** - full language support with strict type checking
 - **Modular code** - split your userscript into multiple files and modules
-- **Testing framework** - Vitest included for unit and integration tests
-- **Automatic bundling** - Rollup bundles everything into a single userscript file
+- **Testing** - Vitest, configured for unit and integration tests
+- **Bundling** - Rollup compiles everything into a single userscript file. Development mode (`npm run dev`) adds watch mode with inline sourcemaps for debugging.
 - **Tree-shaking** - unused code is removed from the final bundle
 - **GM API support** - TypeScript types for the Tampermonkey/Greasemonkey APIs
-- **Userscript metadata** - injects the userscript header from `meta.json`
-- **Development mode** - watch mode with inline sourcemaps for debugging
-- **Code quality** - ESLint + Prettier for consistent code style, jscpd duplicate-code detection
-- **Security scanning** - CodeQL and Semgrep for vulnerability detection
-- **Dependency auditing** - npm audit gates production deps in CI; full scans in the Security workflow
-- **Pre-commit hooks** - validation before commits with Husky
+- **Userscript metadata** - injected from `meta.json`
+- **Code quality** - ESLint and Prettier for consistent style, plus jscpd duplicate-code detection
+- **Security scanning** - CodeQL and Semgrep
+- **Dependency auditing** - npm audit gates production deps in CI; the Security workflow runs full scans
+- **Pre-commit hooks** - Husky validates before each commit
 - **CI/CD** - GitHub Actions for automated testing and releases
 
 ## Project Structure
@@ -80,14 +78,16 @@ After setup completes, everything is configured and ready to go.
 ```
 .
 ├── .github/
-│   └── workflows/
-│       ├── ci.yml            # Continuous integration (lint, test, build)
-│       ├── security.yml      # Security scanning (CodeQL, npm audit, Semgrep)
-│       └── release.yml       # Bumps version, tags, builds, publishes GitHub Release
+│   ├── workflows/
+│   │   ├── ci.yml            # Continuous integration (lint, test, build)
+│   │   ├── security.yml      # Security scanning (CodeQL, npm audit, Semgrep)
+│   │   └── release.yml       # Bumps version, tags, builds, publishes GitHub Release
+│   └── dependabot.yml        # Weekly dependency updates
 ├── scripts/
 │   ├── setup.js               # One-time setup wizard (self-deletes after running)
 │   ├── update-meta-version.js # Bumps meta.json version (used by the release workflow)
-│   └── check-grants.js        # Validates GM API grants in meta.json
+│   ├── check-grants.js        # Validates GM API grants in meta.json
+│   └── audit-gate.js          # Gates the security workflow's npm audit
 ├── src/
 │   ├── index.ts       # Main entry point
 │   └── utils.ts       # Utility functions (example — replace freely)
@@ -97,15 +97,18 @@ After setup completes, everything is configured and ready to go.
 │   └── index.test.ts  # Example tests for main logic
 ├── dist/                   # Gitignored — created by build
 │   └── userscript.user.js  # Built userscript (auto-generated)
-├── meta.json          # Userscript metadata
-├── vitest.config.ts   # Test configuration
-├── package.json       # Project dependencies
-├── tsconfig.json      # TypeScript configuration
-├── rollup.config.js   # Build configuration
-├── eslint.config.js   # ESLint configuration
-├── .jscpd.json        # Duplicate code detection configuration
-├── .prettierrc        # Prettier configuration
-└── LICENSE            # MIT License
+├── meta.json                 # Userscript metadata
+├── vitest.config.ts          # Test configuration
+├── package.json              # Project dependencies
+├── tsconfig.json             # TypeScript configuration
+├── tsconfig.test.json        # Type checking incl. tests
+├── rollup.config.js          # Build configuration
+├── eslint.config.js          # ESLint configuration
+├── .jscpd.json               # Duplicate code detection configuration
+├── .prettierrc               # Prettier configuration
+├── .markdown-link-check.json # Link check configuration
+├── SECURITY.md               # Security policy
+└── LICENSE                   # MIT License
 ```
 
 ## Quick Start
@@ -261,7 +264,7 @@ export function log(message: string): void {
 }
 
 // waitForElement polls with requestAnimationFrame and rejects
-// after a configurable timeout (default 5 000 ms).
+// after a configurable timeout (default 5000 ms).
 // See src/utils.ts for the full implementation.
 
 // Using GM APIs
@@ -295,13 +298,11 @@ The template includes TypeScript support for:
 - **`GM_openInTab(url)`** - Open URL in new tab
 - **`GM_setClipboard(text)`** - Copy text to clipboard
 - **`GM_registerMenuCommand(name, fn)`** - Add menu command
-- **And many more...**
-
-All functions have full TypeScript autocomplete and type checking!
+- Full list: [Tampermonkey GM_* documentation](https://www.tampermonkey.net/documentation.php)
 
 ## Tips
 
-- **GM API autocomplete**: The `@types/tampermonkey` package provides full TypeScript support. Just start typing `GM_` and VS Code will show available functions!
+- Just start typing `GM_` and your editor will autocomplete the available functions.
 
 - **Grant permissions**: Always add the GM functions you use to the `grant` array in [meta.json](meta.json), otherwise they won't work
 
@@ -406,7 +407,7 @@ Three workflows are included:
 - **Dependency audit** (fails on high/critical vulnerabilities)
 - Linting, formatting, type checking (TypeScript + scripts)
 - **Runs test suite to catch bugs**
-- Grant validation and markdown link checks
+- Grant validation and markdown link checks (advisory — link failures never block the build)
 - **Coverage thresholds enforced** — `npm run test:coverage` must meet 80% minimums
 - **Post-setup job** — runs the real setup wizard and asserts the post-setup state
 - Builds the project to ensure everything works
@@ -414,7 +415,7 @@ Three workflows are included:
 
 **`.github/workflows/security.yml`** - Security Scanning:
 - Runs on push/PR and weekly schedule
-- **CodeQL analysis** for JavaScript/TypeScript security vulnerabilities
+- **CodeQL analysis** for JavaScript/TypeScript security vulnerabilities (public repositories only — private forks will see this job skipped)
 - **Semgrep scanning** for XSS and JavaScript-specific security issues
 - Reports findings to GitHub Security tab
 
@@ -538,6 +539,7 @@ Dependency updates are handled by Dependabot (configured in `.github/dependabot.
 **Build:**
 - `npm run build` - Build the userscript for production (no sourcemaps)
 - `npm run dev` - Watch mode for development (with inline sourcemaps)
+- `npm run watch` - Watch mode (alias of dev)
 
 **Testing:**
 - `npm test` - Run tests once
@@ -553,6 +555,7 @@ Dependency updates are handled by Dependabot (configured in `.github/dependabot.
 - `npm run format` - Format code with Prettier
 - `npm run format:check` - Check if code is formatted
 - `npm run type-check` - Run TypeScript type checking (includes unused code detection)
+- `npm run check-duplicates` - Detect duplicated code (jscpd, 5% threshold)
 
 **Validation:**
 - `npm run check-grants` - Validate GM API grants
@@ -565,4 +568,4 @@ MIT
 
 ## Contributing
 
-Feel free to customize this template for your needs!
+Issues and pull requests are welcome. Run `npm run validate` before submitting.
