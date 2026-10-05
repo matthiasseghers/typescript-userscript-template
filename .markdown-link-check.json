@@ -3,7 +3,8 @@
     { "pattern": "matthiasseghers" },
     { "pattern": "%3Cyourusername%3E" },
     { "pattern": "^https://img\\.shields\\.io" },
-    { "pattern": "^https://badge\\.fury\\.io" }
+    { "pattern": "^https://badge\\.fury\\.io" },
+    { "pattern": "^https://www\\.greasespot\\.net" }
   ],
   "httpHeaders": [
     {
