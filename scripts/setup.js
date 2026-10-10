@@ -147,7 +147,11 @@ try {
   removeInheritedTags();
 
   // Remove template-specific files — not relevant to the user's project
-  for (const file of ['MIGRATION_GUIDE.md', 'tests/setup.test.ts']) {
+  for (const file of [
+    'MIGRATION_GUIDE.md',
+    'tests/setup.test.ts',
+    '.github/workflows/setup-wizard-check.yml',
+  ]) {
     if (fs.existsSync(file)) {
       fs.rmSync(file);
       console.log(`  removed ${file}`);
